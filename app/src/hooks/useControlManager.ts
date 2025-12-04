@@ -24,8 +24,10 @@ const POLL_INTERVAL_MS = 1000;
 const AMBIENT_TEMPERATURE = 26;
 const KETTLE_TARGET_TEMPERATURE = 100;
 const KETTLE_BOIL_SECONDS = 90;
+const KETTLE_REFILL_SECONDS = 5;
 const KETTLE_HEAT_RATE = 4;
 const KETTLE_COOL_RATE = 2;
+const KETTLE_HOT_THRESHOLD = 60;
 
 const ESPRESSO_SECONDS = 25;
 const LUNGO_SECONDS = 35;
@@ -75,12 +77,8 @@ const validateAction = (state: DevicesState, action: ControlAction): ActionValid
       }
       return passValidation;
     }
-    case "kettle_ready": {
-      if (state.kettle.status !== "boiling") {
-        return failValidation("Kettle can only be marked ready while boiling.");
-      }
+    case "kettle_ready":
       return passValidation;
-    }
     case "kettle_stop": {
       if (!(["boiling", "cooling", "ready"] as DevicesState["kettle"]["status"][]).includes(state.kettle.status)) {
         return failValidation("Kettle is not active.");
@@ -90,6 +88,9 @@ const validateAction = (state: DevicesState, action: ControlAction): ActionValid
     case "kettle_empty":
       return passValidation;
     case "kettle_refill":
+      if (state.kettle.status !== "water-empty") {
+        return failValidation("Kettle is not empty.");
+      }
       return passValidation;
     case "coffee_activate": {
       if (state.coffee.status === "needs-capsule") {
@@ -164,6 +165,9 @@ const validateAction = (state: DevicesState, action: ControlAction): ActionValid
 const describeDeviceConstraint = (state: DevicesState, deviceId: DeviceId): string | null => {
   switch (deviceId) {
     case "kettle":
+      if (state.kettle.status === "refilling") {
+        return "Refilling";
+      }
       if (state.kettle.status === "water-empty") {
         return "Needs water";
       }
@@ -217,9 +221,9 @@ const applyActionToDevices = (state: DevicesState, action: ControlAction): Devic
     }
     case "kettle_ready": {
       next.kettle.status = "ready";
-      next.kettle.timeTotal = next.kettle.timeTotal ?? KETTLE_BOIL_SECONDS;
-      next.kettle.timeRemaining = 0;
-      next.kettle.temperature = Math.max(next.kettle.temperature, next.kettle.targetTemperature);
+      next.kettle.timeTotal = null;
+      next.kettle.timeRemaining = null;
+      next.kettle.temperature = Math.max(next.kettle.temperature, KETTLE_HOT_THRESHOLD);
       break;
     }
     case "kettle_stop": {
@@ -236,9 +240,9 @@ const applyActionToDevices = (state: DevicesState, action: ControlAction): Devic
       break;
     }
     case "kettle_refill": {
-      next.kettle.status = "idle";
-      next.kettle.timeRemaining = null;
-      next.kettle.timeTotal = null;
+      next.kettle.status = "refilling";
+      next.kettle.timeTotal = KETTLE_REFILL_SECONDS;
+      next.kettle.timeRemaining = KETTLE_REFILL_SECONDS;
       next.kettle.temperature = AMBIENT_TEMPERATURE;
       break;
     }
@@ -345,7 +349,16 @@ const applyActionToDevices = (state: DevicesState, action: ControlAction): Devic
 const advanceDevices = (state: DevicesState): DevicesState => {
   const next = cloneDevicesState(state);
 
-  if (next.kettle.status === "boiling") {
+  if (next.kettle.status === "refilling") {
+    next.kettle.timeTotal = KETTLE_REFILL_SECONDS;
+    next.kettle.timeRemaining = decrementTimer(next.kettle.timeRemaining, 1);
+    if (next.kettle.timeRemaining === 0) {
+      next.kettle.status = "ready";
+      next.kettle.temperature = Math.max(next.kettle.temperature, KETTLE_HOT_THRESHOLD);
+      next.kettle.timeRemaining = null;
+      next.kettle.timeTotal = null;
+    }
+  } else if (next.kettle.status === "boiling") {
     next.kettle.timeTotal = next.kettle.timeTotal ?? KETTLE_BOIL_SECONDS;
     next.kettle.timeRemaining = decrementTimer(next.kettle.timeRemaining, 1);
     next.kettle.temperature = Math.min(
@@ -358,7 +371,11 @@ const advanceDevices = (state: DevicesState): DevicesState => {
       next.kettle.temperature = KETTLE_TARGET_TEMPERATURE;
     }
   } else if (next.kettle.status === "ready") {
-    if (next.kettle.temperature > AMBIENT_TEMPERATURE + 5) {
+    next.kettle.temperature = Math.max(
+      AMBIENT_TEMPERATURE,
+      next.kettle.temperature - KETTLE_COOL_RATE,
+    );
+    if (next.kettle.temperature <= KETTLE_HOT_THRESHOLD) {
       next.kettle.status = "cooling";
     }
   } else if (next.kettle.status === "cooling") {

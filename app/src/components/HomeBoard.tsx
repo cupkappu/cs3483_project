@@ -136,7 +136,20 @@ export default function HomeBoard({
                 {device.statusIcon}
               </span>
               <div className="device-hero__icon">
-                <img src={device.iconSrc} alt={device.iconAlt} loading="lazy" />
+                {device.media.kind === "video" ? (
+                  <video
+                    src={device.media.src}
+                    poster={device.media.poster}
+                    autoPlay={device.media.autoPlay ?? true}
+                    loop={device.media.loop ?? true}
+                    muted={device.media.muted ?? true}
+                    playsInline
+                    role="img"
+                    aria-label={device.media.alt}
+                  />
+                ) : (
+                  <img src={device.media.src} alt={device.media.alt} loading="lazy" />
+                )}
               </div>
               <div className="device-hero__label">{device.label}</div>
               <div className="device-hero__status-label">{device.statusLabel}</div>

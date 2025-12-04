@@ -1,12 +1,5 @@
 import type { DeviceCardInfo, DeviceHeroSummary, DevicesState } from "../types";
-import kettleImg from "../assets/Kettle.png";
-import kettleEmptyImg from "../assets/KettleEmpty.png";
-import kettleFullImg from "../assets/KettleFull.png";
-import coffeeImg from "../assets/CoffeeCup.png";
-import coffeeEspressoImg from "../assets/CoffeeCupEspresso.png";
-import coffeeLungoImg from "../assets/CoffeeCupLungo.png";
-import ovenImg from "../assets/oven.png";
-import ovenHeatingImg from "../assets/OvenHalf.png";
+import { resolveDeviceHeroArtwork } from "../config/deviceArtwork";
 
 const formatSize = (size: string | null) =>
   size ? size.charAt(0).toUpperCase() + size.slice(1) : "";
@@ -23,6 +16,10 @@ const describeKettleLabel = (kettle: DevicesState["kettle"]) => {
       return "Ready";
     case "cooling":
       return `Cooling (${Math.round(kettle.temperature)}°C)`;
+    case "refilling":
+      return kettle.timeRemaining != null
+        ? `Refilling (${kettle.timeRemaining}s)`
+        : "Refilling";
     case "water-empty":
       return "Needs Water";
     default:
@@ -62,17 +59,6 @@ const describeOvenLabel = (oven: DevicesState["oven"]) => {
   }
 };
 
-const selectKettleIcon = (kettle: DevicesState["kettle"]) => {
-  switch (kettle.status) {
-    case "water-empty":
-      return { src: kettleEmptyImg, alt: "Kettle out of water" };
-    case "ready":
-      return { src: kettleFullImg, alt: "Kettle ready" };
-    default:
-      return { src: kettleImg, alt: "Water kettle" };
-  }
-};
-
 const selectKettleStatusIcon = (kettle: DevicesState["kettle"]) => {
   switch (kettle.status) {
     case "ready":
@@ -81,23 +67,13 @@ const selectKettleStatusIcon = (kettle: DevicesState["kettle"]) => {
       return "◎";
     case "cooling":
       return "≈";
+    case "refilling":
+      return "↻";
     case "water-empty":
       return "!";
     default:
       return "–";
   }
-};
-
-const selectCoffeeIcon = (coffee: DevicesState["coffee"]) => {
-  if (coffee.status === "ready") {
-    if (coffee.lastSize === "espresso") {
-      return { src: coffeeEspressoImg, alt: "Espresso ready" };
-    }
-    if (coffee.lastSize === "lungo") {
-      return { src: coffeeLungoImg, alt: "Lungo ready" };
-    }
-  }
-  return { src: coffeeImg, alt: "Coffee maker" };
 };
 
 const selectCoffeeStatusIcon = (coffee: DevicesState["coffee"]) => {
@@ -112,16 +88,6 @@ const selectCoffeeStatusIcon = (coffee: DevicesState["coffee"]) => {
       return "✓";
     default:
       return "–";
-  }
-};
-
-const selectOvenIcon = (oven: DevicesState["oven"]) => {
-  switch (oven.status) {
-    case "preheating":
-    case "heating":
-      return { src: ovenHeatingImg, alt: "Oven heating" };
-    default:
-      return { src: ovenImg, alt: "Oven" };
   }
 };
 
@@ -145,6 +111,10 @@ const describeKettleFooter = (kettle: DevicesState["kettle"]) => {
       return "Ready";
     case "cooling":
       return `${Math.round(kettle.temperature)} °C`;
+    case "refilling":
+      return kettle.timeRemaining != null
+        ? `Refilling (${kettle.timeRemaining} s)`
+        : "Refilling";
     case "water-empty":
       return "Empty";
     default:
@@ -230,16 +200,15 @@ export const createDeviceSummaries = (
 ): DeviceHeroSummary[] => {
   const { kettle, coffee, oven } = devices;
 
-  const kettleIcon = selectKettleIcon(kettle);
-  const coffeeIcon = selectCoffeeIcon(coffee);
-  const ovenIcon = selectOvenIcon(oven);
+  const kettleHero = resolveDeviceHeroArtwork("kettle", kettle);
+  const coffeeHero = resolveDeviceHeroArtwork("coffee", coffee);
+  const ovenHero = resolveDeviceHeroArtwork("oven", oven);
 
   return [
     {
       id: "kettle",
       label: "Water Kettle",
-      iconSrc: kettleIcon.src,
-      iconAlt: kettleIcon.alt,
+      media: kettleHero,
       variant: "device-hero--kettle",
       statusIcon: selectKettleStatusIcon(kettle),
       statusLabel: describeKettleLabel(kettle),
@@ -247,8 +216,7 @@ export const createDeviceSummaries = (
     {
       id: "coffee",
       label: "Coffee Maker",
-      iconSrc: coffeeIcon.src,
-      iconAlt: coffeeIcon.alt,
+      media: coffeeHero,
       variant: "device-hero--capsule",
       statusIcon: selectCoffeeStatusIcon(coffee),
       statusLabel: describeCoffeeLabel(coffee),
@@ -256,8 +224,7 @@ export const createDeviceSummaries = (
     {
       id: "oven",
       label: "Oven",
-      iconSrc: ovenIcon.src,
-      iconAlt: ovenIcon.alt,
+      media: ovenHero,
       variant: "device-hero--oven",
       statusIcon: selectOvenStatusIcon(oven),
       statusLabel: describeOvenLabel(oven),
@@ -271,7 +238,7 @@ export const createDeviceCards = (devices: DevicesState): DeviceCardInfo[] => {
   const kettleVariant =
     kettle.status === "water-empty"
       ? "device-card--alert"
-      : kettle.status === "boiling"
+      : kettle.status === "boiling" || kettle.status === "refilling"
       ? "device-card--warning"
       : "device-card--idle";
 
@@ -297,6 +264,8 @@ export const createDeviceCards = (devices: DevicesState): DeviceCardInfo[] => {
         return "Cooling";
       case "water-empty":
         return "Water Empty";
+      case "refilling":
+        return "Refilling";
       default:
         return "Idle";
     }
@@ -336,6 +305,8 @@ export const createDeviceCards = (devices: DevicesState): DeviceCardInfo[] => {
 
   const kettleProgress = kettle.status === "boiling"
     ? computeTimeProgress(kettle.timeRemaining, kettle.timeTotal)
+    : kettle.status === "refilling"
+    ? computeTimeProgress(kettle.timeRemaining, kettle.timeTotal)
     : undefined;
 
   const coffeeProgress = coffee.status === "brewing"
@@ -355,13 +326,15 @@ export const createDeviceCards = (devices: DevicesState): DeviceCardInfo[] => {
       detail:
         kettle.status === "water-empty"
           ? "Refill water"
+          : kettle.status === "refilling"
+          ? "Adding water"
           : kettle.status === "boiling"
           ? `${kettle.targetTemperature} °C target`
           : `${Math.round(kettle.temperature)} °C`,
       footerLabel: describeKettleFooter(kettle),
       variant: kettleVariant,
       progress: kettleProgress,
-      isActive: kettle.status === "boiling",
+      isActive: kettle.status === "boiling" || kettle.status === "refilling",
     },
     {
       id: "card-coffee",

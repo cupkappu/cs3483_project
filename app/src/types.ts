@@ -39,7 +39,13 @@ export interface ControlActionResult {
 }
 
 export interface KettleState {
-	status: "idle" | "boiling" | "ready" | "cooling" | "water-empty";
+	status:
+		| "idle"
+		| "boiling"
+		| "ready"
+		| "cooling"
+		| "water-empty"
+		| "refilling";
 	temperature: number;
 	targetTemperature: number;
 	timeRemaining: number | null;
@@ -73,11 +79,20 @@ export interface DetectionStatus {
 	voice: string;
 }
 
+export interface DeviceHeroMedia {
+	kind: "image" | "video";
+	src: string;
+	alt: string;
+	poster?: string;
+	autoPlay?: boolean;
+	loop?: boolean;
+	muted?: boolean;
+}
+
 export interface DeviceHeroSummary {
 	id: DeviceId;
 	label: string;
-	iconSrc: string;
-	iconAlt: string;
+	media: DeviceHeroMedia;
 	variant: string;
 	statusIcon: string;
 	statusLabel: string;

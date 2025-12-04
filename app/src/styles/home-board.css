@@ -131,6 +131,13 @@
   object-fit: contain;
 }
 
+.device-hero__icon video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
 .device-hero__status {
   position: absolute;
   top: 14px;
