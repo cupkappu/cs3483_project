@@ -13,15 +13,19 @@ export const INITIAL_DEVICES: DevicesState = {
     temperature: 85,
     targetTemperature: 85,
     timeRemaining: 0,
+    timeTotal: 64,
   },
   coffee: {
     status: "needs-capsule",
     lastSize: null,
+    timeRemaining: null,
+    timeTotal: null,
   },
   oven: {
     status: "heating",
     temperature: 120,
     timeRemaining: 64,
+    timeTotal: 64,
   },
 };
 

@@ -146,6 +146,20 @@ export default function HomeBoard({
             <article key={card.id} className={`device-card ${card.variant}`}>
               <h3>{card.state}</h3>
               <div className="device-card__detail">{card.detail}</div>
+              {card.progress !== undefined && (
+                <div
+                  className="device-card__progress"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(card.progress * 100)}
+                >
+                  <span
+                    className="device-card__progress-fill"
+                    style={{ width: `${Math.round(card.progress * 100)}%` }}
+                  />
+                </div>
+              )}
               <div className="device-card__foot">
                 {card.footerLabel || "\u00a0"}
               </div>

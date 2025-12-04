@@ -1,8 +1,4 @@
-import type {
-  DeviceCardInfo,
-  DeviceHeroSummary,
-  DevicesState,
-} from "../types";
+import type { DeviceCardInfo, DeviceHeroSummary, DevicesState } from "../types";
 import kettleImg from "../assets/Kettle.png";
 import kettleEmptyImg from "../assets/KettleEmpty.png";
 import kettleFullImg from "../assets/KettleFull.png";
@@ -14,6 +10,19 @@ import ovenHeatingImg from "../assets/OvenHalf.png";
 
 const formatSize = (size: "espresso" | "lungo" | null) =>
   size ? size.charAt(0).toUpperCase() + size.slice(1) : "";
+
+const computeProgress = (remaining: number | null, total: number | null) => {
+  if (typeof remaining !== "number" || remaining < 0) {
+    return undefined;
+  }
+
+  if (typeof total !== "number" || total <= 0) {
+    return undefined;
+  }
+
+  const progress = (total - remaining) / total;
+  return Math.min(1, Math.max(0, progress));
+};
 
 const describeKettleLabel = (devices: DevicesState["kettle"]) => {
   switch (devices.status) {
@@ -183,8 +192,13 @@ const describeKettleFooter = (devices: DevicesState["kettle"]) => {
 const describeCoffeeDetail = (devices: DevicesState["coffee"]) => {
   switch (devices.status) {
     case "brewing":
-      return devices.lastSize
-        ? `${formatSize(devices.lastSize)} in progress`
+      if (devices.lastSize) {
+        return devices.timeRemaining != null
+          ? `${formatSize(devices.lastSize)} in progress (${devices.timeRemaining}s)`
+          : `${formatSize(devices.lastSize)} in progress`;
+      }
+      return devices.timeRemaining != null
+        ? `Brewing (${devices.timeRemaining}s)`
         : "Brewing";
     case "espresso-ready":
     case "lungo-ready":
@@ -244,6 +258,10 @@ export const createDeviceCards = (devices: DevicesState): DeviceCardInfo[] => {
       ? "device-card--idle"
       : "device-card--idle";
 
+  const kettleActive = kettle.status === "boiling";
+  const coffeeActive = coffee.status === "brewing";
+  const ovenActive = oven.status === "heating";
+
   return [
     {
       id: "card-kettle",
@@ -261,6 +279,8 @@ export const createDeviceCards = (devices: DevicesState): DeviceCardInfo[] => {
           : `${kettle.targetTemperature} °C`,
       footerLabel: describeKettleFooter(kettle),
       variant: kettleVariant,
+      progress: kettleActive ? computeProgress(kettle.timeRemaining, kettle.timeTotal) : undefined,
+      isActive: kettleActive,
     },
     {
       id: "card-coffee",
@@ -279,6 +299,8 @@ export const createDeviceCards = (devices: DevicesState): DeviceCardInfo[] => {
       detail: describeCoffeeDetail(coffee),
       footerLabel: describeCoffeeFooter(coffee),
       variant: coffeeVariant,
+      progress: coffeeActive ? computeProgress(coffee.timeRemaining, coffee.timeTotal) : undefined,
+      isActive: coffeeActive,
     },
     {
       id: "card-oven",
@@ -291,6 +313,8 @@ export const createDeviceCards = (devices: DevicesState): DeviceCardInfo[] => {
       detail: `${oven.temperature} °C`,
       footerLabel: describeOvenFooter(oven),
       variant: ovenVariant,
+      progress: ovenActive ? computeProgress(oven.timeRemaining, oven.timeTotal) : undefined,
+      isActive: ovenActive,
     },
   ];
 };

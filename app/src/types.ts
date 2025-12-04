@@ -36,6 +36,7 @@ export interface KettleState {
 	temperature: number;
 	targetTemperature: number;
 	timeRemaining: number | null;
+	timeTotal: number | null;
 }
 
 export interface CoffeeState {
@@ -46,12 +47,15 @@ export interface CoffeeState {
 		| "lungo-ready"
 		| "needs-capsule";
 	lastSize: "espresso" | "lungo" | null;
+	timeRemaining: number | null;
+	timeTotal: number | null;
 }
 
 export interface OvenState {
 	status: "idle" | "heating" | "ready";
 	temperature: number;
 	timeRemaining: number | null;
+	timeTotal: number | null;
 }
 
 export interface DevicesState {
@@ -81,6 +85,8 @@ export interface DeviceCardInfo {
 	detail: string;
 	footerLabel: string;
 	variant: string;
+	progress?: number;
+	isActive?: boolean;
 }
 
 export interface ManualControlAction {
@@ -106,4 +112,20 @@ export interface LogTimelineItem {
 	time: string;
 	text: string;
 	variant?: "alert";
+}
+
+export interface DeviceStatusDto {
+	id: DeviceId;
+	status: string;
+	remainingSeconds?: number | null;
+	totalSeconds?: number | null;
+	temperature?: number | null;
+	targetTemperature?: number | null;
+	lastSize?: "espresso" | "lungo" | null;
+	updatedAt: string;
+}
+
+export interface DevicePollingSnapshot {
+	devices: DeviceStatusDto[];
+	fetchedAt: string;
 }

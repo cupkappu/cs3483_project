@@ -390,6 +390,24 @@
   font-size: 1.05rem;
 }
 
+.device-card__progress {
+  position: relative;
+  margin-top: 14px;
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.device-card__progress-fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #3e4c6d, #7083b7);
+  transition: width 0.25s ease;
+}
+
 .device-card__foot {
   position: absolute;
   left: 0;
@@ -416,6 +434,18 @@
 
 .device-card--alert .device-card__foot {
   background: rgba(193, 56, 45, 0.85);
+}
+
+.device-card--idle .device-card__progress-fill {
+  background: linear-gradient(90deg, #3e4c6d, #7083b7);
+}
+
+.device-card--warning .device-card__progress-fill {
+  background: linear-gradient(90deg, #d0882d, #f1b65e);
+}
+
+.device-card--alert .device-card__progress-fill {
+  background: linear-gradient(90deg, #b93a2b, #e26b5a);
 }
 
 .status-block {
