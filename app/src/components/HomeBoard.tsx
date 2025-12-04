@@ -96,7 +96,7 @@ export default function HomeBoard({
           </div>
         </section>
 
-        {hasManualControls && (
+        {/* {hasManualControls && (
           <section className="home-panel">
             <h3>Manual Controls</h3>
             <div className="manual-controls">
@@ -125,7 +125,7 @@ export default function HomeBoard({
               ))}
             </div>
           </section>
-        )}
+        )} */}
       </div>
 
       <div className="home-main">
