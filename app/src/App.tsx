@@ -118,8 +118,10 @@ export default function App() {
     }
   };
 
+  const rootClassName = colorblindMode ? "control-board colorblind-mode" : "control-board";
+
   return (
-    <div className="control-board">
+    <div className={rootClassName}>
       <NavSidebar
         boardState={boardState}
         guideState={guideState}
