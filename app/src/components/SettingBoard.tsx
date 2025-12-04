@@ -1,16 +1,34 @@
-export default function SettingBoard() {
+interface SettingBoardProps {
+  colorblindMode: boolean;
+  meetingMode: boolean;
+  onToggleColorblind: () => void;
+  onToggleMeeting: () => void;
+}
+
+export default function SettingBoard({
+  colorblindMode,
+  meetingMode,
+  onToggleColorblind,
+  onToggleMeeting,
+}: SettingBoardProps) {
   return (
     <div className="setting-layout">
       <div className="setting-top">
         <div className="setting-modes">
-          <div className="mode-row">
-            <span className="mode-dot" aria-hidden="true" />
-            <span>Colorblind Mode</span>
-          </div>
-          <div className="mode-row">
-            <span className="mode-dot" aria-hidden="true" />
-            <span>Meeting Mode</span>
-          </div>
+          <button type="button" className="mode-toggle" onClick={onToggleColorblind}>
+            <span
+              className={colorblindMode ? "mode-indicator active" : "mode-indicator"}
+              aria-hidden="true"
+            />
+            Colorblind Mode
+          </button>
+          <button type="button" className="mode-toggle" onClick={onToggleMeeting}>
+            <span
+              className={meetingMode ? "mode-indicator active" : "mode-indicator"}
+              aria-hidden="true"
+            />
+            Meeting Mode
+          </button>
         </div>
         <div className="setting-camera">
           <h2>LIVE CAMERA</h2>

@@ -63,7 +63,14 @@ export default function App() {
           />
         );
       case "setting":
-        return <SettingBoard />;
+        return (
+          <SettingBoard
+            colorblindMode={colorblindMode}
+            meetingMode={meetingMode}
+            onToggleColorblind={() => setColorblindMode((prev) => !prev)}
+            onToggleMeeting={() => setMeetingMode((prev) => !prev)}
+          />
+        );
       case "home":
       default: {
         // Manual controls intentionally omitted until the module is reworked.
