@@ -16,6 +16,7 @@ const navItems: NavSectionItem[] = [
       { id: "manual", label: "Manual" },
     ],
   },
+  { id: "manualControl", label: "Manual Test" },
   { id: "log", label: "Log" },
   { id: "setting", label: "Setting" },
 ];

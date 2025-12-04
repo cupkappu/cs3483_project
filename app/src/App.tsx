@@ -4,6 +4,7 @@ import type { BoardState, GuideSubState } from "./types";
 import NavSidebar from "./components/NavSidebar";
 import HomeBoard from "./components/HomeBoard";
 import GuideBoard from "./components/GuideBoard";
+import ManualControlBoard from "./components/ManualControlBoard";
 import LogBoard from "./components/LogBoard";
 import SettingBoard from "./components/SettingBoard";
 import { useControlManager } from "./hooks/useControlManager";
@@ -22,9 +23,13 @@ export default function App() {
     logSummaryItems,
     timelineItems,
     logCount,
+    manualSections,
     handleStopAll,
     handleClearLog,
     handleExportLog,
+    handleManualAction,
+    refreshDeviceStatus,
+    latestSnapshot,
   } = useControlManager();
 
   const handleSelectBoard = (state: BoardState) => {
@@ -69,6 +74,17 @@ export default function App() {
             meetingMode={meetingMode}
             onToggleColorblind={() => setColorblindMode((prev) => !prev)}
             onToggleMeeting={() => setMeetingMode((prev) => !prev)}
+          />
+        );
+      case "manualControl":
+        return (
+          <ManualControlBoard
+            sections={manualSections}
+            detectionStatus={detectionStatus}
+            latestSnapshot={latestSnapshot}
+            onAction={handleManualAction}
+            onRefresh={refreshDeviceStatus}
+            timelineItems={timelineItems}
           />
         );
       case "home":

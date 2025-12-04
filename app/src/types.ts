@@ -1,4 +1,4 @@
-export type BoardState = "home" | "guide" | "log" | "setting";
+export type BoardState = "home" | "guide" | "log" | "setting" | "manualControl";
 export type GuideSubState = "tutorial" | "manual";
 
 export type DeviceId = "kettle" | "coffee" | "oven";
