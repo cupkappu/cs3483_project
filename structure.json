@@ -1,0 +1,306 @@
+{
+    "Nav": {
+        "Desc": "Navigation Bar, set ControlBoard current visibility",
+        "Home": {
+            "Desc": "change ControlBoard state to Home component"
+        },
+        "Guide": {
+            "Desc": "change ControlBoard state to Guide component",
+            "Sub": {
+                "Tutorial": {
+                    "Desc": "open Tutorial guide"
+                },
+                "Manual": {
+                    "Desc": "open User Manual guide"
+                }
+            }
+        },
+        "Log": {
+            "Desc": "change ControlBoard state to Log component"
+        },
+        "Setting": {
+            "Desc": "change ControlBoard state to Setting component"
+        },
+        "Stop All": {
+            "Desc": "stop all running processes",
+            "Button": true
+        },
+        "DefaultUI": true
+    },
+    "ControlBoard": {
+        "BoardContent": {
+            "Desc": "Content area of ControlBoard, determined by boardState"
+        },
+        "DefaultUI": true
+    },
+    "HomeComponent": {
+        "Desc": "Home component of ControlBoard",
+        "Component": true,
+        "Components": {
+            "ModeShower": {
+                "Colorblind Mode": {
+                    "Marker": "A cicle to show the state of Colorblind Mode",
+                    "Text": "Colorblind Mode"
+                },
+                "Meeting Mode": {
+                    "Marker": "A cicle to show the state of Meeting Mode",
+                    "Text": "Meeting Mode"
+                }
+            },
+            "CAMERA": {
+                "Text": "CAMERA",
+                "Camera Area": "An area to show camera feed"
+            },
+            "Gestrue Detector": {
+                "Text": "Gesture Detect",
+                "Status": [
+                    "NONE",
+                    {
+                        "Pic": "camera",
+                        "Text": "WATER KETTLE ON"
+                    }
+                ]
+            },
+            "WaterKettle": {
+                "PicWithState": {
+                    "Pic": "water_kettle",
+                    "State": "Finish"
+                },
+                "DivBox": [
+                    {
+                        "Text": "Ready"
+                    },
+                    {
+                        "Text": "85°C(temp)"
+                    },
+                    {
+                        "TimeBar": 0
+                    }
+                ]
+            },
+            "Oven": {
+                "PicWithState": {
+                    "Pic": "oven",
+                    "State": "Running"
+                },
+                "DivBox": [
+                    {
+                        "Text": "Ready"
+                    },
+                    {
+                        "Text": "120°C(temp)"
+                    },
+                    {
+                        "TimeBar": 64
+                    }
+                ]
+            },
+            "CapsuleMachine": {
+                "Pic": {
+                    "Pic": "capsule_empty"
+                },
+                "DivBoxForCapsule": [
+                    {
+                        "Text": "Capsule Empty / Capsule Used / Capsule Available"
+                    },
+                    {
+                        "Text": "120°C(temp)"
+                    },
+                    {
+                        "TimeBar": 0
+                    }
+                ]
+            }
+        }
+    },
+    "TutorialComponent": {
+        "Desc": "Guide component of ControlBoard",
+        "Component": true,
+        "Components": {
+            "Title": {
+                "Text": "",
+                "Type": "State determined title text"
+            },
+            "PAGE": {
+                "CURRENT": "1",
+                "Text": "PAGE: 1 2 3 4"
+            },
+            "Compoment": {
+                "input": {
+                    "tutorial": [
+                        "1",
+                        "2",
+                        "3",
+                        "4"
+                    ],
+                    "handTypes": [
+                        "UpwardWave",
+                        "DownwardWave",
+                        "Fist",
+                        "Plam",
+                        "TwoHandsPush",
+                        "TwoHandsPlam"
+                    ]
+                },
+                "DIV": {
+                    "LIVE CAMERA": "Text",
+                    "LiveCameraFeed": {
+                        "Desc": "An area to show live camera feed with gesture recognition"
+                    }
+                },
+                "GestureDetect": {
+                    "Desc": "Show detected gesture and its meaning",
+                    "Text1": "Gesture Detect: ",
+                    "Text2": "WATER KETTLE ON/NONE/..."
+                },
+                "DEMO": {
+                    "Text": "DEMO",
+                    "DemoVideoArea": {
+                        "Desc": "An area to show demo video"
+                    },
+                    "IntroText": {
+                        "Text": "Please Upward Wave"
+                    }
+                },
+                "VoiceCommandDetect": {
+                    "Desc": "Show detected voice command and its meaning",
+                    "Text1": "Voice Command Detect: ",
+                    "Text2": "SUCCESS/NOT AVAILABLE/..."
+                },
+                "GeneralInstruction": {
+                    "Text": [
+                        "Start Command (After Gesture): ",
+                        "Start(English)/",
+                        "開始(in Cantonese/ Mandarin)",
+                        "",
+                        "Stop Command (Anytime): ",
+                        "Stop(English)/",
+                        "停止(in Cantonese/ Mandarin)"
+                    ]
+                }
+            }
+        }
+    },
+    "ManualComponent": {
+        "Desc": "Manual component of ControlBoard",
+        "Component": true,
+        "Components": {
+            "DescriptionSection": {
+                "Title": {
+                    "Text": "Control"
+                },
+                "Section1": {
+                    "Title": "Hand Gesture",
+                    "Content": "Description of hand gesture control..."
+                }
+            },
+            "DetectArea": [
+                "LiveCameraComponent",
+                "GestureDetectComponent",
+                "VoiceCommandDetectComponent"
+            ]
+        }
+    },
+    "LogComponent": {
+        "Desc": "Log component of ControlBoard",
+        "Component": true,
+        "Components": {
+            "Summary": {
+                "Desc": "Summary of recent activities"
+            },
+            "Timeline": {
+                "Desc": "Timeline of all activities"
+            },
+            "Bottoms": {
+                "Export Log": {
+                    "Button": true,
+                    "Desc": "Button to export log"
+                },
+                "Clear Log": {
+                    "Button": true,
+                    "Desc": "Button to clear log"
+                }
+            }
+        }
+    },
+    "SettingComponent": {
+        "Desc": "Setting component of ControlBoard",
+        "Component": true,
+        "Components": {
+            "Colorblind Mode": {
+                "Toggle": {
+                    "Desc": "Toggle to enable/disable Colorblind Mode"
+                }
+            },
+            "Meeting Mode": {
+                "Toggle": {
+                    "Desc": "Toggle to enable/disable Meeting Mode"
+                }
+            },
+            "Device Connected": {
+                "Desc": "List of connected devices",
+                "Devices": [
+                    "Water Kettle: WK-001",
+                    "Oven: panasonic-E200",
+                    "Coffee Maker: Essenza Mini(RED)"
+                ]
+            },
+            "LIVE CAMERA": {
+                "Desc": "Settings for live camera feed",
+                "Resolution": {
+                    "Desc": "Dropdown to select camera resolution",
+                    "Options": [
+                        "720p",
+                        "1080p",
+                        "4K"
+                    ]
+                },
+                "Frame Rate": {
+                    "Desc": "Dropdown to select camera frame rate",
+                    "Options": [
+                        "30 FPS",
+                        "60 FPS"
+                    ]
+                }
+            },
+            "Oven Setting": {
+                "Desc": "Settings specific to the Oven device",
+                "Temperature" : {
+                    "Slider": {
+                        "Desc": "Slider to set oven temperature",
+                        "Min": "50°C",
+                        "Max": "250°C"
+                    }
+                },
+                "Time": {
+                    "Slider": {
+                        "Desc": "Slider to set oven time",
+                        "Min": "1 min",
+                        "Max": "120 min"
+                    }
+                }
+            },
+            "VoiceCommandSetting": {
+                "Desc": "Settings for voice command recognition",
+                "Sensitivity": {
+                    "Slider": {
+                        "Desc": "Slider to adjust voice command sensitivity",
+                        "Min": "Low",
+                        "Max": "High"
+                    }
+                },
+                "SoundVolume": {
+                    "Slider": {
+                        "Desc": "Slider to adjust sound volume for feedback",
+                        "Min": "0",
+                        "Max": "100"
+                    }
+                }
+            },
+            "Reset Settings": {
+                "Button": true,
+                "Desc": "Button to reset all settings to default"
+            }
+        }
+    }
+}
