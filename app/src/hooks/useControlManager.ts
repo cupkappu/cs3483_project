@@ -34,8 +34,26 @@ const LUNGO_SECONDS = 35;
 
 const OVEN_PREHEAT_TARGET = 180;
 const OVEN_HEAT_SECONDS = 150;
+const OVEN_MIN_TEMPERATURE = 80;
+const OVEN_MAX_TEMPERATURE = 260;
+const OVEN_MIN_HEAT_SECONDS = 30;
+const OVEN_MAX_HEAT_SECONDS = 600;
 const OVEN_PREHEAT_RATE = 10;
 const OVEN_COOL_RATE = 3;
+
+interface SimulationConfig {
+  oven: {
+    targetTemperature: number;
+    heatDuration: number;
+  };
+}
+
+const DEFAULT_SIMULATION_CONFIG: SimulationConfig = {
+  oven: {
+    targetTemperature: OVEN_PREHEAT_TARGET,
+    heatDuration: OVEN_HEAT_SECONDS,
+  },
+};
 
 const createLogId = () => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -205,7 +223,11 @@ const buildActionAvailability = (state: DevicesState): ActionAvailabilityMap => 
   return entries;
 };
 
-const applyActionToDevices = (state: DevicesState, action: ControlAction): DevicesState => {
+const applyActionToDevices = (
+  state: DevicesState,
+  action: ControlAction,
+  config: SimulationConfig,
+): DevicesState => {
   const next = cloneDevicesState(state);
 
   switch (action) {
@@ -296,18 +318,21 @@ const applyActionToDevices = (state: DevicesState, action: ControlAction): Devic
     }
     case "oven_preheat": {
       next.oven.status = "preheating";
-      next.oven.targetTemperature = OVEN_PREHEAT_TARGET;
+      next.oven.targetTemperature = config.oven.targetTemperature;
       next.oven.timeRemaining = null;
       next.oven.timeTotal = null;
       break;
     }
     case "oven_start_heat": {
       next.oven.status = "heating";
-      next.oven.targetTemperature = OVEN_PREHEAT_TARGET;
-      next.oven.timeTotal = OVEN_HEAT_SECONDS;
-      next.oven.timeRemaining = OVEN_HEAT_SECONDS;
-      if (next.oven.temperature < OVEN_PREHEAT_TARGET) {
-        next.oven.temperature = Math.max(next.oven.temperature, OVEN_PREHEAT_TARGET - 10);
+      next.oven.targetTemperature = config.oven.targetTemperature;
+      next.oven.timeTotal = config.oven.heatDuration;
+      next.oven.timeRemaining = config.oven.heatDuration;
+      if (next.oven.temperature < config.oven.targetTemperature) {
+        next.oven.temperature = Math.max(
+          next.oven.temperature,
+          config.oven.targetTemperature - 10,
+        );
       }
       break;
     }
@@ -346,7 +371,7 @@ const applyActionToDevices = (state: DevicesState, action: ControlAction): Devic
   return next;
 };
 
-const advanceDevices = (state: DevicesState): DevicesState => {
+const advanceDevices = (state: DevicesState, config: SimulationConfig): DevicesState => {
   const next = cloneDevicesState(state);
 
   if (next.kettle.status === "refilling") {
@@ -410,7 +435,7 @@ const advanceDevices = (state: DevicesState): DevicesState => {
       next.oven.status = "ready";
     }
   } else if (next.oven.status === "heating") {
-    next.oven.timeTotal = next.oven.timeTotal ?? OVEN_HEAT_SECONDS;
+    next.oven.timeTotal = next.oven.timeTotal ?? config.oven.heatDuration;
     next.oven.timeRemaining = decrementTimer(next.oven.timeRemaining, 1);
     if (next.oven.temperature < next.oven.targetTemperature) {
       next.oven.temperature = Math.min(next.oven.targetTemperature, next.oven.temperature + OVEN_PREHEAT_RATE / 2);
@@ -496,6 +521,9 @@ interface ControlManagerApi {
   refreshDeviceStatus: () => Promise<DevicePollingSnapshot>;
   latestSnapshot: DevicePollingSnapshot | null;
   lastActionResult: ControlActionResult | null;
+  ovenSettings: SimulationConfig["oven"];
+  updateOvenSettings: (settings: SimulationConfig["oven"]) => void;
+  resetOvenSettings: () => void;
 }
 
 export const useControlManager = (): ControlManagerApi => {
@@ -508,6 +536,9 @@ export const useControlManager = (): ControlManagerApi => {
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [latestSnapshot, setLatestSnapshot] = useState<DevicePollingSnapshot | null>(null);
   const [lastActionResult, setLastActionResult] = useState<ControlActionResult | null>(null);
+  const [simulationConfig, setSimulationConfig] = useState<SimulationConfig>(() => ({
+    oven: { ...DEFAULT_SIMULATION_CONFIG.oven },
+  }));
 
   const appendLog = useCallback((action: ControlAction, message: string, source: ControlSource) => {
     setLogEntries((prev) => {
@@ -524,12 +555,12 @@ export const useControlManager = (): ControlManagerApi => {
   }, []);
 
   const refreshDeviceStatus = useCallback(async () => {
-    backendStateRef.current = advanceDevices(backendStateRef.current);
+    backendStateRef.current = advanceDevices(backendStateRef.current, simulationConfig);
     const snapshot = createSnapshot(backendStateRef.current);
     setLatestSnapshot(snapshot);
     setDevices(cloneDevicesState(backendStateRef.current));
     return snapshot;
-  }, []);
+  }, [simulationConfig]);
 
   const performAction = useCallback(
     (action: ControlAction, source: ControlSource = "manual") => {
@@ -558,7 +589,11 @@ export const useControlManager = (): ControlManagerApi => {
         return result;
       }
 
-      backendStateRef.current = applyActionToDevices(backendStateRef.current, action);
+      backendStateRef.current = applyActionToDevices(
+        backendStateRef.current,
+        action,
+        simulationConfig,
+      );
       setDevices(cloneDevicesState(backendStateRef.current));
 
       appendLog(action, config.message, source);
@@ -578,7 +613,7 @@ export const useControlManager = (): ControlManagerApi => {
       setLastActionResult(result);
       return result;
     },
-    [appendLog],
+    [appendLog, simulationConfig],
   );
 
   const handleManualAction = useCallback(
@@ -618,6 +653,35 @@ export const useControlManager = (): ControlManagerApi => {
     anchor.click();
     URL.revokeObjectURL(url);
   }, [logEntries]);
+
+  const updateOvenSettings = useCallback(
+    (settings: SimulationConfig["oven"]) => {
+      const normalized: SimulationConfig["oven"] = {
+        targetTemperature: Math.round(
+          Math.min(OVEN_MAX_TEMPERATURE, Math.max(OVEN_MIN_TEMPERATURE, settings.targetTemperature)),
+        ),
+        heatDuration: Math.round(
+          Math.min(OVEN_MAX_HEAT_SECONDS, Math.max(OVEN_MIN_HEAT_SECONDS, settings.heatDuration)),
+        ),
+      };
+
+      setSimulationConfig({ oven: { ...normalized } });
+
+      const nextBackend = cloneDevicesState(backendStateRef.current);
+      nextBackend.oven.targetTemperature = normalized.targetTemperature;
+      if (nextBackend.oven.status !== "heating") {
+        nextBackend.oven.timeRemaining = null;
+        nextBackend.oven.timeTotal = null;
+      }
+      backendStateRef.current = nextBackend;
+      setDevices(cloneDevicesState(nextBackend));
+    },
+    [setDevices, setSimulationConfig],
+  );
+
+  const resetOvenSettings = useCallback(() => {
+    updateOvenSettings({ ...DEFAULT_SIMULATION_CONFIG.oven });
+  }, [updateOvenSettings]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -669,5 +733,8 @@ export const useControlManager = (): ControlManagerApi => {
     refreshDeviceStatus,
     latestSnapshot,
     lastActionResult,
+    ovenSettings: simulationConfig.oven,
+    updateOvenSettings,
+    resetOvenSettings,
   };
 };

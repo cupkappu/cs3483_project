@@ -68,6 +68,10 @@ interface ControlBoardViewProps {
   latestSnapshot: DevicePollingSnapshot | null;
   lastActionResult: ControlActionResult | null;
   tutorialPage: number;
+  ovenSettings: {
+    targetTemperature: number;
+    heatDuration: number;
+  };
   onToggleColorblind: () => void;
   onToggleMeeting: () => void;
   onSelectBoard: (state: BoardState) => void;
@@ -78,6 +82,8 @@ interface ControlBoardViewProps {
   onStopAll: () => void;
   onClearLog: () => void;
   onExportLog: () => void;
+  onUpdateOvenSettings: (settings: { targetTemperature: number; heatDuration: number }) => void;
+  onResetOvenSettings: () => void;
 }
 
 function ControlBoardView({
@@ -96,6 +102,7 @@ function ControlBoardView({
   latestSnapshot,
   lastActionResult,
   tutorialPage,
+  ovenSettings,
   onToggleColorblind,
   onToggleMeeting,
   onSelectBoard,
@@ -106,6 +113,8 @@ function ControlBoardView({
   onStopAll,
   onClearLog,
   onExportLog,
+  onUpdateOvenSettings,
+  onResetOvenSettings,
 }: ControlBoardViewProps) {
   const renderHomeBoard = () => (
     <HomeBoard
@@ -114,10 +123,8 @@ function ControlBoardView({
       detectionStatus={detectionStatus}
       deviceSummaries={deviceSummaries}
       deviceCards={deviceCards}
-      manualSections={ENABLE_MANUAL_TEST ? manualSections : undefined}
       onToggleColorblind={onToggleColorblind}
       onToggleMeeting={onToggleMeeting}
-      onManualAction={ENABLE_MANUAL_TEST ? onManualAction : undefined}
     />
   );
 
@@ -149,6 +156,9 @@ function ControlBoardView({
             meetingMode={meetingMode}
             onToggleColorblind={onToggleColorblind}
             onToggleMeeting={onToggleMeeting}
+            ovenSettings={ovenSettings}
+            onUpdateOvenSettings={onUpdateOvenSettings}
+            onResetOvenSettings={onResetOvenSettings}
           />
         );
       case "manualControl":
@@ -213,6 +223,9 @@ export default function App() {
     refreshDeviceStatus,
     latestSnapshot,
     lastActionResult,
+    ovenSettings,
+    updateOvenSettings,
+    resetOvenSettings,
   } = useControlManager();
 
   const [controlWindow, setControlWindow] = useState<ControlWindowState>({
@@ -328,6 +341,7 @@ export default function App() {
       latestSnapshot={latestSnapshot}
       lastActionResult={lastActionResult}
       tutorialPage={tutorialPage}
+      ovenSettings={ovenSettings}
       onToggleColorblind={() => setColorblindMode((prev) => !prev)}
       onToggleMeeting={() => setMeetingMode((prev) => !prev)}
       onSelectBoard={handleSelectBoard}
@@ -338,6 +352,8 @@ export default function App() {
       onStopAll={handleStopAll}
       onClearLog={handleClearLog}
       onExportLog={handleExportLog}
+      onUpdateOvenSettings={updateOvenSettings}
+      onResetOvenSettings={resetOvenSettings}
     />
   );
 

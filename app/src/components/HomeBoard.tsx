@@ -2,11 +2,9 @@ import "../styles/board-shared.css";
 import "../styles/home-board.css";
 
 import type {
-  ControlAction,
   DetectionStatus,
   DeviceCardInfo,
   DeviceHeroSummary,
-  ManualControlSection,
 } from "../types";
 
 interface HomeBoardProps {
@@ -15,10 +13,8 @@ interface HomeBoardProps {
   detectionStatus: DetectionStatus;
   deviceSummaries: DeviceHeroSummary[];
   deviceCards: DeviceCardInfo[];
-  manualSections?: ManualControlSection[];
   onToggleColorblind: () => void;
   onToggleMeeting: () => void;
-  onManualAction?: (action: ControlAction) => void;
 }
 
 export default function HomeBoard({
@@ -27,16 +23,9 @@ export default function HomeBoard({
   detectionStatus,
   deviceSummaries,
   deviceCards,
-  manualSections,
   onToggleColorblind,
   onToggleMeeting,
-  onManualAction,
 }: HomeBoardProps) {
-  const manualSectionsToRender = manualSections ?? [];
-  const hasManualControls = Boolean(
-    manualSectionsToRender.length && onManualAction
-  );
-
   return (
     <div className="home-board">
       <div className="home-sidebar">
@@ -95,37 +84,6 @@ export default function HomeBoard({
             </div>
           </div>
         </section>
-
-        {/* {hasManualControls && (
-          <section className="home-panel">
-            <h3>Manual Controls</h3>
-            <div className="manual-controls">
-              {manualSectionsToRender.map((section) => (
-                <div key={section.id} className="manual-section">
-                  <h4>{section.title}</h4>
-                  <div className="manual-actions">
-                    {section.actions.map((action) => {
-                      const toneClass =
-                        action.tone && action.tone !== "default"
-                          ? ` manual-button--${action.tone}`
-                          : "";
-                      return (
-                        <button
-                          key={action.id}
-                          type="button"
-                          className={`manual-button${toneClass}`}
-                          onClick={() => onManualAction?.(action.id)}
-                        >
-                          {action.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )} */}
       </div>
 
       <div className="home-main">
