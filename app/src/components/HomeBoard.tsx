@@ -12,10 +12,10 @@ interface HomeBoardProps {
   detectionStatus: DetectionStatus;
   deviceSummaries: DeviceHeroSummary[];
   deviceCards: DeviceCardInfo[];
-  manualSections: ManualControlSection[];
+  manualSections?: ManualControlSection[];
   onToggleColorblind: () => void;
   onToggleMeeting: () => void;
-  onManualAction: (action: ControlAction) => void;
+  onManualAction?: (action: ControlAction) => void;
 }
 
 export default function HomeBoard({
@@ -29,10 +29,16 @@ export default function HomeBoard({
   onToggleMeeting,
   onManualAction,
 }: HomeBoardProps) {
+  const manualSectionsToRender = manualSections ?? [];
+  const hasManualControls = Boolean(
+    manualSectionsToRender.length && onManualAction
+  );
+
   return (
     <div className="home-board">
       <div className="home-sidebar">
         <section className="home-panel">
+
           <h2>Mode</h2>
           <button type="button" className="mode-toggle" onClick={onToggleColorblind}>
             <span
@@ -87,11 +93,11 @@ export default function HomeBoard({
           </div>
         </section>
 
-        {manualSections.length > 0 && (
+        {hasManualControls && (
           <section className="home-panel">
             <h3>Manual Controls</h3>
             <div className="manual-controls">
-              {manualSections.map((section) => (
+              {manualSectionsToRender.map((section) => (
                 <div key={section.id} className="manual-section">
                   <h4>{section.title}</h4>
                   <div className="manual-actions">
@@ -105,7 +111,7 @@ export default function HomeBoard({
                           key={action.id}
                           type="button"
                           className={`manual-button${toneClass}`}
-                          onClick={() => onManualAction(action.id)}
+                          onClick={() => onManualAction?.(action.id)}
                         >
                           {action.label}
                         </button>
