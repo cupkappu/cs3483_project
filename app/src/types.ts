@@ -32,6 +32,12 @@ export interface LogEntry {
 	source: ControlSource;
 }
 
+export interface ControlActionResult {
+	success: boolean;
+	message: string;
+	level: "info" | "warning";
+}
+
 export interface KettleState {
 	status: "idle" | "boiling" | "ready" | "cooling" | "water-empty";
 	temperature: number;
@@ -121,6 +127,7 @@ export interface DeviceStatusDto {
 	targetTemperature?: number | null;
 	selectedSize?: CoffeeSize | null;
 	lastSize?: CoffeeSize | null;
+	constraint?: string | null;
 	updatedAt: string;
 }
 
@@ -128,3 +135,10 @@ export interface DevicePollingSnapshot {
 	devices: DeviceStatusDto[];
 	fetchedAt: string;
 }
+
+export interface ActionAvailability {
+	available: boolean;
+	reason?: string;
+}
+
+export type ActionAvailabilityMap = Record<ControlAction, ActionAvailability>;

@@ -1,20 +1,24 @@
 import { useState } from "react";
 import type {
+  ActionAvailabilityMap,
   ControlAction,
   DetectionStatus,
   DevicePollingSnapshot,
   DeviceStatusDto,
   LogTimelineItem,
   ManualControlSection,
+  ControlActionResult,
 } from "../types";
 
 interface ManualControlBoardProps {
   sections: ManualControlSection[];
   detectionStatus: DetectionStatus;
   latestSnapshot: DevicePollingSnapshot | null;
-  onAction: (action: ControlAction) => void;
+  onAction: (action: ControlAction) => ControlActionResult;
+  actionAvailability: ActionAvailabilityMap;
   onRefresh: () => Promise<DevicePollingSnapshot>;
   timelineItems: LogTimelineItem[];
+  lastActionResult: ControlActionResult | null;
 }
 
 const formatFetchedAt = (snapshot: DevicePollingSnapshot | null) => {
@@ -46,6 +50,13 @@ const formatRemaining = (remaining?: number | null, total?: number | null) => {
   return `${remaining}s`;
 };
 
+const formatSize = (size: string | null | undefined) => {
+  if (!size) {
+    return "--";
+  }
+  return size.charAt(0).toUpperCase() + size.slice(1);
+};
+
 const describeDetails = (device: DeviceStatusDto) => {
   switch (device.id) {
     case "kettle": {
@@ -56,7 +67,7 @@ const describeDetails = (device: DeviceStatusDto) => {
       return `Temp ${current} → ${target}`;
     }
     case "coffee": {
-      const drink = device.selectedSize ?? device.lastSize ?? "--";
+      const drink = formatSize(device.selectedSize ?? device.lastSize);
       return `Selected: ${drink}`;
     }
     case "oven": {
@@ -76,8 +87,10 @@ export default function ManualControlBoard({
   detectionStatus,
   latestSnapshot,
   onAction,
+  actionAvailability,
   onRefresh,
   timelineItems,
+  lastActionResult,
 }: ManualControlBoardProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,12 +138,16 @@ export default function ManualControlBoard({
                       action.tone && action.tone !== "default"
                         ? ` manual-button--${action.tone}`
                         : "";
+                    const availability = actionAvailability[action.id];
+                    const disabled = availability ? !availability.available : false;
                     return (
                       <button
                         key={action.id}
                         type="button"
                         className={`manual-button${toneClass}`}
                         onClick={() => onAction(action.id)}
+                        disabled={disabled}
+                        title={disabled ? availability?.reason : undefined}
                       >
                         {action.label}
                       </button>
@@ -155,6 +172,17 @@ export default function ManualControlBoard({
             </button>
           </div>
           <div className="manual-control-meta">Last fetched: {formatFetchedAt(latestSnapshot)}</div>
+          {lastActionResult && (
+            <div
+              className={
+                lastActionResult.success
+                  ? "manual-control-feedback manual-control-feedback--success"
+                  : "manual-control-feedback manual-control-feedback--warning"
+              }
+            >
+              {lastActionResult.message}
+            </div>
+          )}
           {error && <div className="manual-control-error">{error}</div>}
 
           <div className="manual-control-table">
@@ -166,6 +194,7 @@ export default function ManualControlBoard({
                     <th scope="col">Status</th>
                     <th scope="col">Remaining</th>
                     <th scope="col">Details</th>
+                    <th scope="col">Constraint</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -175,6 +204,7 @@ export default function ManualControlBoard({
                       <td>{device.status}</td>
                       <td>{formatRemaining(device.remainingSeconds, device.totalSeconds)}</td>
                       <td>{describeDetails(device)}</td>
+                      <td>{device.constraint ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>

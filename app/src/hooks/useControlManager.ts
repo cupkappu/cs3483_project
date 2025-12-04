@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
+  ActionAvailabilityMap,
   ControlAction,
+  ControlActionResult,
   ControlSource,
   DetectionStatus,
   DevicePollingSnapshot,
   DeviceStatusDto,
+  DeviceId,
   DevicesState,
   LogEntry,
 } from "../types";
@@ -50,6 +53,152 @@ const decrementTimer = (value: number | null, step: number) => {
     return value;
   }
   return Math.max(0, value - step);
+};
+
+interface ActionValidation {
+  ok: boolean;
+  reason?: string;
+}
+
+const passValidation: ActionValidation = { ok: true };
+
+const failValidation = (reason: string): ActionValidation => ({ ok: false, reason });
+
+const validateAction = (state: DevicesState, action: ControlAction): ActionValidation => {
+  switch (action) {
+    case "kettle_start": {
+      if (state.kettle.status === "water-empty") {
+        return failValidation("Kettle requires water before boiling.");
+      }
+      if (state.kettle.status === "boiling") {
+        return failValidation("Kettle is already boiling.");
+      }
+      return passValidation;
+    }
+    case "kettle_ready": {
+      if (state.kettle.status !== "boiling") {
+        return failValidation("Kettle can only be marked ready while boiling.");
+      }
+      return passValidation;
+    }
+    case "kettle_stop": {
+      if (!(["boiling", "cooling", "ready"] as DevicesState["kettle"]["status"][]).includes(state.kettle.status)) {
+        return failValidation("Kettle is not active.");
+      }
+      return passValidation;
+    }
+    case "kettle_empty":
+      return passValidation;
+    case "kettle_refill":
+      return passValidation;
+    case "coffee_activate": {
+      if (state.coffee.status === "needs-capsule") {
+        return failValidation("Load a capsule before activating.");
+      }
+      if (state.coffee.status === "brewing") {
+        return failValidation("Coffee is currently brewing.");
+      }
+      return passValidation;
+    }
+    case "coffee_select_espresso":
+    case "coffee_select_lungo": {
+      if (state.coffee.status === "needs-capsule") {
+        return failValidation("Cannot brew without a capsule.");
+      }
+      if (state.coffee.status === "brewing") {
+        return failValidation("Brewing already in progress.");
+      }
+      if (state.coffee.status !== "waiting-selection") {
+        return failValidation("Activate the machine before selecting a size.");
+      }
+      return passValidation;
+    }
+    case "coffee_cancel": {
+      if (!(["waiting-selection", "brewing"] as DevicesState["coffee"]["status"][]).includes(state.coffee.status)) {
+        return failValidation("Nothing to cancel on the coffee maker.");
+      }
+      return passValidation;
+    }
+    case "coffee_capsule_empty":
+      return passValidation;
+    case "coffee_capsule_load": {
+      if (state.coffee.status !== "needs-capsule") {
+        return failValidation("Capsule already loaded.");
+      }
+      return passValidation;
+    }
+    case "oven_preheat": {
+      if (state.oven.status === "preheating") {
+        return failValidation("Oven is already preheating.");
+      }
+      if (state.oven.status === "heating") {
+        return failValidation("Stop heating before preheating again.");
+      }
+      if (state.oven.status === "ready") {
+        return failValidation("Oven is already at target temperature.");
+      }
+      return passValidation;
+    }
+    case "oven_start_heat": {
+      if (state.oven.status === "preheating") {
+        return failValidation("Wait for preheating to finish before heating.");
+      }
+      if (state.oven.status !== "ready") {
+        return failValidation("Preheat the oven before starting a timed heat.");
+      }
+      return passValidation;
+    }
+    case "oven_stop": {
+      if (!(["preheating", "heating", "ready"] as DevicesState["oven"]["status"][]).includes(state.oven.status)) {
+        return failValidation("Oven is already idle.");
+      }
+      return passValidation;
+    }
+    case "stop_all":
+      return passValidation;
+    default:
+      return passValidation;
+  }
+};
+
+const describeDeviceConstraint = (state: DevicesState, deviceId: DeviceId): string | null => {
+  switch (deviceId) {
+    case "kettle":
+      if (state.kettle.status === "water-empty") {
+        return "Needs water";
+      }
+      return null;
+    case "coffee":
+      if (state.coffee.status === "needs-capsule") {
+        return "Capsule required";
+      }
+      if (state.coffee.status === "brewing") {
+        return "Brewing in progress";
+      }
+      return null;
+    case "oven":
+      if (state.oven.status === "preheating") {
+        return "Preheating";
+      }
+      if (state.oven.status === "heating") {
+        return "Heating";
+      }
+      return null;
+    default:
+      return null;
+  }
+};
+
+const buildActionAvailability = (state: DevicesState): ActionAvailabilityMap => {
+  const entries = {} as ActionAvailabilityMap;
+  (Object.keys(ACTION_CONFIG) as ControlAction[]).forEach((action) => {
+    const validation = validateAction(state, action);
+    entries[action] = {
+      available: validation.ok,
+      reason: validation.reason,
+    };
+  });
+  return entries;
 };
 
 const applyActionToDevices = (state: DevicesState, action: ControlAction): DevicesState => {
@@ -279,6 +428,7 @@ const devicesToDto = (state: DevicesState, timestamp: string): DeviceStatusDto[]
     totalSeconds: state.kettle.timeTotal,
     temperature: state.kettle.temperature,
     targetTemperature: state.kettle.targetTemperature,
+    constraint: describeDeviceConstraint(state, "kettle"),
     updatedAt: timestamp,
   },
   {
@@ -288,6 +438,7 @@ const devicesToDto = (state: DevicesState, timestamp: string): DeviceStatusDto[]
     totalSeconds: state.coffee.timeTotal,
     selectedSize: state.coffee.selectedSize,
     lastSize: state.coffee.lastSize,
+    constraint: describeDeviceConstraint(state, "coffee"),
     updatedAt: timestamp,
   },
   {
@@ -297,6 +448,7 @@ const devicesToDto = (state: DevicesState, timestamp: string): DeviceStatusDto[]
     totalSeconds: state.oven.timeTotal,
     temperature: state.oven.temperature,
     targetTemperature: state.oven.targetTemperature,
+    constraint: describeDeviceConstraint(state, "oven"),
     updatedAt: timestamp,
   },
 ];
@@ -318,13 +470,15 @@ interface ControlManagerApi {
   timelineItems: ReturnType<typeof buildTimelineItems>;
   logCount: number;
   manualSections: typeof MANUAL_SECTIONS;
-  performAction: (action: ControlAction, source?: ControlSource) => void;
-  handleManualAction: (action: ControlAction) => void;
+  actionAvailability: ActionAvailabilityMap;
+  performAction: (action: ControlAction, source?: ControlSource) => ControlActionResult;
+  handleManualAction: (action: ControlAction) => ControlActionResult;
   handleStopAll: () => void;
   handleClearLog: () => void;
   handleExportLog: () => void;
   refreshDeviceStatus: () => Promise<DevicePollingSnapshot>;
   latestSnapshot: DevicePollingSnapshot | null;
+  lastActionResult: ControlActionResult | null;
 }
 
 export const useControlManager = (): ControlManagerApi => {
@@ -336,6 +490,7 @@ export const useControlManager = (): ControlManagerApi => {
   });
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [latestSnapshot, setLatestSnapshot] = useState<DevicePollingSnapshot | null>(null);
+  const [lastActionResult, setLastActionResult] = useState<ControlActionResult | null>(null);
 
   const appendLog = useCallback((action: ControlAction, message: string, source: ControlSource) => {
     setLogEntries((prev) => {
@@ -363,7 +518,27 @@ export const useControlManager = (): ControlManagerApi => {
     (action: ControlAction, source: ControlSource = "manual") => {
       const config = ACTION_CONFIG[action];
       if (!config) {
-        return;
+        const result: ControlActionResult = {
+          success: false,
+          message: "Unknown action.",
+          level: "warning",
+        };
+        setLastActionResult(result);
+        return result;
+      }
+
+      const validation = validateAction(backendStateRef.current, action);
+      if (!validation.ok) {
+        const reason = validation.reason ?? "Action blocked.";
+        const rejectedMessage = `[Rejected] ${config.message}: ${reason}`;
+        appendLog(action, rejectedMessage, source);
+        const result: ControlActionResult = {
+          success: false,
+          message: reason,
+          level: "warning",
+        };
+        setLastActionResult(result);
+        return result;
       }
 
       backendStateRef.current = applyActionToDevices(backendStateRef.current, action);
@@ -377,13 +552,21 @@ export const useControlManager = (): ControlManagerApi => {
           voice: config.detection?.voice ?? prev.voice,
         }));
       }
+
+      const result: ControlActionResult = {
+        success: true,
+        message: config.message,
+        level: "info",
+      };
+      setLastActionResult(result);
+      return result;
     },
     [appendLog],
   );
 
   const handleManualAction = useCallback(
     (action: ControlAction) => {
-      performAction(action, "manual");
+      return performAction(action, "manual");
     },
     [performAction],
   );
@@ -449,6 +632,7 @@ export const useControlManager = (): ControlManagerApi => {
   const deviceCards = useMemo(() => createDeviceCards(devices), [devices]);
   const logSummaryItems = useMemo(() => buildLogSummaryItems(logEntries), [logEntries]);
   const timelineItems = useMemo(() => buildTimelineItems(logEntries), [logEntries]);
+  const actionAvailability = useMemo(() => buildActionAvailability(devices), [devices]);
 
   return {
     deviceSummaries,
@@ -459,6 +643,7 @@ export const useControlManager = (): ControlManagerApi => {
     timelineItems,
     logCount: logEntries.length,
     manualSections: MANUAL_SECTIONS,
+    actionAvailability,
     performAction,
     handleManualAction,
     handleStopAll,
@@ -466,5 +651,6 @@ export const useControlManager = (): ControlManagerApi => {
     handleExportLog,
     refreshDeviceStatus,
     latestSnapshot,
+    lastActionResult,
   };
 };

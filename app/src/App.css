@@ -1039,6 +1039,28 @@ button {
   cursor: not-allowed;
 }
 
+.manual-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.manual-control-feedback {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.manual-control-feedback--success {
+  background: #d4e6d8;
+  color: #1f5228;
+}
+
+.manual-control-feedback--warning {
+  background: #f6dbd6;
+  color: #732018;
+}
+
 .manual-control-meta {
   font-size: 0.9rem;
   color: #6e6659;

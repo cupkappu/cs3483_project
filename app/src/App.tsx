@@ -8,6 +8,7 @@ import ManualControlBoard from "./components/ManualControlBoard";
 import LogBoard from "./components/LogBoard";
 import SettingBoard from "./components/SettingBoard";
 import { useControlManager } from "./hooks/useControlManager";
+import { ENABLE_MANUAL_TEST } from "./config/featureFlags";
 
 export default function App() {
   const [boardState, setBoardState] = useState<BoardState>("home");
@@ -24,15 +25,21 @@ export default function App() {
     timelineItems,
     logCount,
     manualSections,
+    actionAvailability,
     handleStopAll,
     handleClearLog,
     handleExportLog,
     handleManualAction,
     refreshDeviceStatus,
     latestSnapshot,
+    lastActionResult,
   } = useControlManager();
 
   const handleSelectBoard = (state: BoardState) => {
+    if (state === "manualControl" && !ENABLE_MANUAL_TEST) {
+      setBoardState("home");
+      return;
+    }
     setBoardState(state);
     if (state === "guide") {
       setGuideState("tutorial");
@@ -45,6 +52,18 @@ export default function App() {
     setGuideState(state);
     setTutorialPage(1);
   };
+
+  const renderHomeBoard = () => (
+    <HomeBoard
+      colorblindMode={colorblindMode}
+      meetingMode={meetingMode}
+      detectionStatus={detectionStatus}
+      deviceSummaries={deviceSummaries}
+      deviceCards={deviceCards}
+      onToggleColorblind={() => setColorblindMode((prev) => !prev)}
+      onToggleMeeting={() => setMeetingMode((prev) => !prev)}
+    />
+  );
 
   const renderBoard = () => {
     switch (boardState) {
@@ -77,30 +96,24 @@ export default function App() {
           />
         );
       case "manualControl":
-        return (
-          <ManualControlBoard
-            sections={manualSections}
-            detectionStatus={detectionStatus}
-            latestSnapshot={latestSnapshot}
-            onAction={handleManualAction}
-            onRefresh={refreshDeviceStatus}
-            timelineItems={timelineItems}
-          />
-        );
+        if (ENABLE_MANUAL_TEST) {
+          return (
+            <ManualControlBoard
+              sections={manualSections}
+              detectionStatus={detectionStatus}
+              latestSnapshot={latestSnapshot}
+              onAction={handleManualAction}
+              actionAvailability={actionAvailability}
+              onRefresh={refreshDeviceStatus}
+              timelineItems={timelineItems}
+              lastActionResult={lastActionResult}
+            />
+          );
+        }
+        return renderHomeBoard();
       case "home":
       default: {
-        // Manual controls intentionally omitted until the module is reworked.
-        return (
-          <HomeBoard
-            colorblindMode={colorblindMode}
-            meetingMode={meetingMode}
-            detectionStatus={detectionStatus}
-            deviceSummaries={deviceSummaries}
-            deviceCards={deviceCards}
-            onToggleColorblind={() => setColorblindMode((prev) => !prev)}
-            onToggleMeeting={() => setMeetingMode((prev) => !prev)}
-          />
-        );
+        return renderHomeBoard();
       }
     }
   };
@@ -113,6 +126,7 @@ export default function App() {
         onSelectBoard={handleSelectBoard}
         onSelectGuide={handleSelectGuide}
         onStopAll={handleStopAll}
+        showManualTest={ENABLE_MANUAL_TEST}
       />
       <main className="board">{renderBoard()}</main>
     </div>

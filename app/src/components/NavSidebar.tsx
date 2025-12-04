@@ -6,27 +6,13 @@ interface NavSectionItem {
   children?: { id: GuideSubState; label: string }[];
 }
 
-const navItems: NavSectionItem[] = [
-  { id: "home", label: "Home" },
-  {
-    id: "guide",
-    label: "Guide",
-    children: [
-      { id: "tutorial", label: "Tutorial" },
-      { id: "manual", label: "Manual" },
-    ],
-  },
-  { id: "manualControl", label: "Manual Test" },
-  { id: "log", label: "Log" },
-  { id: "setting", label: "Setting" },
-];
-
 interface NavSidebarProps {
   boardState: BoardState;
   guideState: GuideSubState;
   onSelectBoard: (state: BoardState) => void;
   onSelectGuide: (state: GuideSubState) => void;
   onStopAll: () => void;
+  showManualTest: boolean;
 }
 
 export default function NavSidebar({
@@ -35,7 +21,23 @@ export default function NavSidebar({
   onSelectBoard,
   onSelectGuide,
   onStopAll,
+  showManualTest,
 }: NavSidebarProps) {
+  const navItems: NavSectionItem[] = [
+    { id: "home", label: "Home" },
+    {
+      id: "guide",
+      label: "Guide",
+      children: [
+        { id: "tutorial", label: "Tutorial" },
+        { id: "manual", label: "Manual" },
+      ],
+    },
+    ...(showManualTest ? ([{ id: "manualControl", label: "Manual Test" }] as NavSectionItem[]) : []),
+    { id: "log", label: "Log" },
+    { id: "setting", label: "Setting" },
+  ];
+
   return (
     <aside className="nav-pane">
       <div className="nav-brand">ControlBoard</div>
