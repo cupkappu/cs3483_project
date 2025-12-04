@@ -3,9 +3,11 @@ import p5Types from "p5";
 import { useRef } from "react";
 
 export default function P5camera_hand({
+  canvas_size: { width, height },
   gesture_callback,
   confidence_callback,
 }: {
+  canvas_size: { width: number; height: number };
   gesture_callback: (gesture: string) => void;
   confidence_callback: (confidence: number) => void;
 }) {
@@ -17,9 +19,9 @@ export default function P5camera_hand({
 
 
   const setup = (p5: p5Types, canvasParentRef: Element) => {
-    p5.createCanvas(625, 437).parent(canvasParentRef);
+    p5.createCanvas(width, height).parent(canvasParentRef);
     videoRef.current = p5.createCapture("video");
-    videoRef.current.size(625, 437);
+    videoRef.current.size(width, height);
     videoRef.current.hide();
 
     setTimeout(async () => {

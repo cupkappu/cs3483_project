@@ -25,21 +25,16 @@
 }
 
 .camera-feed {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  min-height: 150px;
   border-radius: 12px;
-  background: linear-gradient(
-    135deg,
-    var(--color-camera-gradient-start),
-    var(--color-camera-gradient-end)
-  );
-  color: #404a6b;
-  font-weight: 600;
+  border: 2px solid rgba(47, 42, 38, 0.35);
+  overflow: hidden;
 }
 
-.camera-feed {
-  height: 150px;
+.home-camera-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .detection-status {

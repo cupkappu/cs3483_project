@@ -1,6 +1,7 @@
 import "../styles/board-shared.css";
 import "../styles/home-board.css";
 
+import LiveCameraFeed from "./LiveCameraFeed";
 import type {
   DetectionStatus,
   DeviceCardInfo,
@@ -52,7 +53,12 @@ export default function HomeBoard({
 
         <section className="home-panel">
           <h3>LIVE CAMERA</h3>
-          <div className="camera-feed">"Camera Area"</div>
+          <LiveCameraFeed
+            canvasSize={{ width: 240, height: 180 }}
+            wrapperClassName="home-camera-block"
+            frameClassName="camera-feed camera-frame--live"
+            showStatus={false}
+          />
         </section>
 
         <section className="home-panel">

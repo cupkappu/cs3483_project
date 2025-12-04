@@ -1,5 +1,6 @@
 import "../styles/board-shared.css";
 import "../styles/guide-board.css";
+import LiveCameraFeed from "./LiveCameraFeed";
 import type { DetectionStatus, GuideSubState } from "../types";
 
 interface GuideBoardProps {
@@ -66,7 +67,10 @@ function TutorialBoard({
       <div className="tutorial-columns">
         <section className="tutorial-column">
           <h2>LIVE CAMERA</h2>
-          <div className="camera-frame">"Camera Area"</div>
+          <LiveCameraFeed
+            frameClassName="camera-frame camera-frame--live"
+            showStatus={false}
+          />
           <div className="status-block">
             <span className="status-label">Gesture Detect:</span>
             <div className="status-line">
@@ -201,7 +205,10 @@ function ManualBoard({
 
       <section className="manual-right">
         <h2>LIVE CAMERA</h2>
-        <div className="camera-frame camera-frame--tall">"Camera Area"</div>
+        <LiveCameraFeed
+          frameClassName="camera-frame camera-frame--live camera-frame--tall"
+          showStatus={false}
+        />
         <div className="status-block">
           <span className="status-label">Gesture Detect:</span>
           <div className="status-line">

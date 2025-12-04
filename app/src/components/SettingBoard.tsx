@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
 import "../styles/board-shared.css";
 import "../styles/setting-board.css";
+import LiveCameraFeed from "./LiveCameraFeed";
 
 interface SettingBoardProps {
   colorblindMode: boolean;
@@ -65,7 +66,11 @@ export default function SettingBoard({
 
       <div className="setting-camera">
         <h2>LIVE CAMERA</h2>
-        <div className="camera-frame">"Camera Area"</div>
+        <LiveCameraFeed
+          canvasSize={{ width: 320, height: 240 }}
+          frameClassName="camera-frame camera-frame--live"
+          showStatus={false}
+        />
       </div>
 
       <section className="setting-column">
