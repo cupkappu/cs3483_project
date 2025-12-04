@@ -25,17 +25,16 @@ export const buildLogSummaryItems = (entries: LogEntry[]): LogSummaryItem[] => {
       case "kettle_refill":
         counts.water += 1;
         break;
-      case "coffee_brew_espresso":
-      case "coffee_ready_espresso":
-      case "coffee_brew_lungo":
-      case "coffee_ready_lungo":
+      case "coffee_activate":
+      case "coffee_select_espresso":
+      case "coffee_select_lungo":
+      case "coffee_cancel":
       case "coffee_capsule_empty":
       case "coffee_capsule_load":
-      case "coffee_reset":
         counts.coffee += 1;
         break;
-      case "oven_start":
-      case "oven_ready":
+      case "oven_preheat":
+      case "oven_start_heat":
       case "oven_stop":
         counts.oven += 1;
         break;

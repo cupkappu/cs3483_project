@@ -17,6 +17,21 @@ import {
 import { createDeviceCards, createDeviceSummaries } from "../utils/deviceViewModel";
 import { buildLogSummaryItems, buildTimelineItems } from "../utils/logging";
 
+const POLL_INTERVAL_MS = 1000;
+const AMBIENT_TEMPERATURE = 26;
+const KETTLE_TARGET_TEMPERATURE = 100;
+const KETTLE_BOIL_SECONDS = 90;
+const KETTLE_HEAT_RATE = 4;
+const KETTLE_COOL_RATE = 2;
+
+const ESPRESSO_SECONDS = 25;
+const LUNGO_SECONDS = 35;
+
+const OVEN_PREHEAT_TARGET = 180;
+const OVEN_HEAT_SECONDS = 150;
+const OVEN_PREHEAT_RATE = 10;
+const OVEN_COOL_RATE = 3;
+
 const createLogId = () => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -24,118 +39,142 @@ const createLogId = () => {
   return `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 };
 
-const POLL_INTERVAL_MS = 1000;
-const KETTLE_CYCLE_SECONDS = 64;
-const OVEN_CYCLE_SECONDS = 64;
-const ESPRESSO_SECONDS = 25;
-const LUNGO_SECONDS = 35;
-
 const cloneDevicesState = (state: DevicesState): DevicesState => ({
   kettle: { ...state.kettle },
   coffee: { ...state.coffee },
   oven: { ...state.oven },
 });
 
-const decrementTimer = (value: number | null, amount: number) => {
-  if (value == null) {
+const decrementTimer = (value: number | null, step: number) => {
+  if (typeof value !== "number") {
     return value;
   }
-  return Math.max(0, value - amount);
+  return Math.max(0, value - step);
 };
 
 const applyActionToDevices = (state: DevicesState, action: ControlAction): DevicesState => {
   const next = cloneDevicesState(state);
 
   switch (action) {
-    case "kettle_start":
+    case "kettle_start": {
       next.kettle.status = "boiling";
-      next.kettle.timeTotal = KETTLE_CYCLE_SECONDS;
-      next.kettle.timeRemaining = KETTLE_CYCLE_SECONDS;
-      next.kettle.temperature = Math.min(next.kettle.temperature, next.kettle.targetTemperature);
+      next.kettle.targetTemperature = KETTLE_TARGET_TEMPERATURE;
+      next.kettle.timeTotal = KETTLE_BOIL_SECONDS;
+      next.kettle.timeRemaining = KETTLE_BOIL_SECONDS;
+      if (next.kettle.temperature < AMBIENT_TEMPERATURE) {
+        next.kettle.temperature = AMBIENT_TEMPERATURE;
+      }
       break;
-    case "kettle_ready":
+    }
+    case "kettle_ready": {
       next.kettle.status = "ready";
-      next.kettle.timeTotal = next.kettle.timeTotal ?? KETTLE_CYCLE_SECONDS;
+      next.kettle.timeTotal = next.kettle.timeTotal ?? KETTLE_BOIL_SECONDS;
       next.kettle.timeRemaining = 0;
-      next.kettle.temperature = next.kettle.targetTemperature;
+      next.kettle.temperature = Math.max(next.kettle.temperature, next.kettle.targetTemperature);
       break;
-    case "kettle_stop":
+    }
+    case "kettle_stop": {
       next.kettle.status = "idle";
       next.kettle.timeRemaining = null;
-      next.kettle.timeTotal = next.kettle.timeTotal ?? KETTLE_CYCLE_SECONDS;
+      next.kettle.timeTotal = null;
       break;
-    case "kettle_empty":
+    }
+    case "kettle_empty": {
       next.kettle.status = "water-empty";
       next.kettle.timeRemaining = null;
+      next.kettle.timeTotal = null;
+      next.kettle.temperature = AMBIENT_TEMPERATURE;
       break;
-    case "kettle_refill":
+    }
+    case "kettle_refill": {
       next.kettle.status = "idle";
       next.kettle.timeRemaining = null;
+      next.kettle.timeTotal = null;
+      next.kettle.temperature = AMBIENT_TEMPERATURE;
       break;
-    case "coffee_brew_espresso":
-      next.coffee.status = "brewing";
-      next.coffee.lastSize = "espresso";
-      next.coffee.timeTotal = ESPRESSO_SECONDS;
-      next.coffee.timeRemaining = ESPRESSO_SECONDS;
+    }
+    case "coffee_activate": {
+      if (next.coffee.status !== "needs-capsule") {
+        next.coffee.status = "waiting-selection";
+        next.coffee.selectedSize = null;
+        next.coffee.timeRemaining = null;
+        next.coffee.timeTotal = null;
+      }
       break;
-    case "coffee_ready_espresso":
-      next.coffee.status = "espresso-ready";
-      next.coffee.lastSize = "espresso";
-      next.coffee.timeTotal = next.coffee.timeTotal ?? ESPRESSO_SECONDS;
-      next.coffee.timeRemaining = 0;
+    }
+    case "coffee_select_espresso": {
+      if (next.coffee.status !== "needs-capsule") {
+        next.coffee.status = "brewing";
+        next.coffee.selectedSize = "espresso";
+        next.coffee.timeTotal = ESPRESSO_SECONDS;
+        next.coffee.timeRemaining = ESPRESSO_SECONDS;
+      }
       break;
-    case "coffee_brew_lungo":
-      next.coffee.status = "brewing";
-      next.coffee.lastSize = "lungo";
-      next.coffee.timeTotal = LUNGO_SECONDS;
-      next.coffee.timeRemaining = LUNGO_SECONDS;
+    }
+    case "coffee_select_lungo": {
+      if (next.coffee.status !== "needs-capsule") {
+        next.coffee.status = "brewing";
+        next.coffee.selectedSize = "lungo";
+        next.coffee.timeTotal = LUNGO_SECONDS;
+        next.coffee.timeRemaining = LUNGO_SECONDS;
+      }
       break;
-    case "coffee_ready_lungo":
-      next.coffee.status = "lungo-ready";
-      next.coffee.lastSize = "lungo";
-      next.coffee.timeTotal = next.coffee.timeTotal ?? LUNGO_SECONDS;
-      next.coffee.timeRemaining = 0;
+    }
+    case "coffee_cancel": {
+      next.coffee.status = "idle";
+      next.coffee.selectedSize = null;
+      next.coffee.timeRemaining = null;
+      next.coffee.timeTotal = null;
       break;
-    case "coffee_capsule_empty":
+    }
+    case "coffee_capsule_empty": {
       next.coffee.status = "needs-capsule";
+      next.coffee.selectedSize = null;
       next.coffee.timeRemaining = null;
       next.coffee.timeTotal = null;
       break;
-    case "coffee_capsule_load":
+    }
+    case "coffee_capsule_load": {
       next.coffee.status = "idle";
+      next.coffee.selectedSize = null;
       next.coffee.timeRemaining = null;
       next.coffee.timeTotal = null;
       break;
-    case "coffee_reset":
-      next.coffee.status = "idle";
-      next.coffee.lastSize = null;
-      next.coffee.timeRemaining = null;
-      next.coffee.timeTotal = null;
+    }
+    case "oven_preheat": {
+      next.oven.status = "preheating";
+      next.oven.targetTemperature = OVEN_PREHEAT_TARGET;
+      next.oven.timeRemaining = null;
+      next.oven.timeTotal = null;
       break;
-    case "oven_start":
+    }
+    case "oven_start_heat": {
       next.oven.status = "heating";
-      next.oven.timeTotal = OVEN_CYCLE_SECONDS;
-      next.oven.timeRemaining = OVEN_CYCLE_SECONDS;
+      next.oven.targetTemperature = OVEN_PREHEAT_TARGET;
+      next.oven.timeTotal = OVEN_HEAT_SECONDS;
+      next.oven.timeRemaining = OVEN_HEAT_SECONDS;
+      if (next.oven.temperature < OVEN_PREHEAT_TARGET) {
+        next.oven.temperature = Math.max(next.oven.temperature, OVEN_PREHEAT_TARGET - 10);
+      }
       break;
-    case "oven_ready":
-      next.oven.status = "ready";
-      next.oven.timeTotal = next.oven.timeTotal ?? OVEN_CYCLE_SECONDS;
-      next.oven.timeRemaining = 0;
-      break;
-    case "oven_stop":
+    }
+    case "oven_stop": {
       next.oven.status = "idle";
       next.oven.timeRemaining = null;
-      next.oven.timeTotal = next.oven.timeTotal ?? OVEN_CYCLE_SECONDS;
+      next.oven.timeTotal = null;
       break;
-    case "stop_all":
+    }
+    case "stop_all": {
       next.kettle = {
         ...next.kettle,
         status: "idle",
         timeRemaining: null,
+        timeTotal: null,
       };
       next.coffee = {
         ...next.coffee,
-        status: "idle",
+        status: next.coffee.status === "needs-capsule" ? "needs-capsule" : "idle",
+        selectedSize: null,
         timeRemaining: null,
         timeTotal: null,
       };
@@ -143,8 +182,10 @@ const applyActionToDevices = (state: DevicesState, action: ControlAction): Devic
         ...next.oven,
         status: "idle",
         timeRemaining: null,
+        timeTotal: null,
       };
       break;
+    }
     default:
       break;
   }
@@ -156,31 +197,74 @@ const advanceDevices = (state: DevicesState): DevicesState => {
   const next = cloneDevicesState(state);
 
   if (next.kettle.status === "boiling") {
-    const remaining = decrementTimer(next.kettle.timeRemaining, 1);
-    next.kettle.timeRemaining = remaining;
-    if (remaining === 0) {
+    next.kettle.timeTotal = next.kettle.timeTotal ?? KETTLE_BOIL_SECONDS;
+    next.kettle.timeRemaining = decrementTimer(next.kettle.timeRemaining, 1);
+    next.kettle.temperature = Math.min(
+      KETTLE_TARGET_TEMPERATURE,
+      next.kettle.temperature + KETTLE_HEAT_RATE,
+    );
+    if (next.kettle.timeRemaining === 0 || next.kettle.temperature >= KETTLE_TARGET_TEMPERATURE) {
       next.kettle.status = "ready";
-      next.kettle.temperature = next.kettle.targetTemperature;
-    } else if (typeof remaining === "number" && next.kettle.temperature < next.kettle.targetTemperature) {
-      next.kettle.temperature = Math.min(next.kettle.targetTemperature, next.kettle.temperature + 1);
+      next.kettle.timeRemaining = 0;
+      next.kettle.temperature = KETTLE_TARGET_TEMPERATURE;
+    }
+  } else if (next.kettle.status === "ready") {
+    if (next.kettle.temperature > AMBIENT_TEMPERATURE + 5) {
+      next.kettle.status = "cooling";
+    }
+  } else if (next.kettle.status === "cooling") {
+    next.kettle.temperature = Math.max(
+      AMBIENT_TEMPERATURE,
+      next.kettle.temperature - KETTLE_COOL_RATE,
+    );
+    if (next.kettle.temperature <= AMBIENT_TEMPERATURE + 1) {
+      next.kettle.status = "idle";
+      next.kettle.timeRemaining = null;
+      next.kettle.timeTotal = null;
     }
   }
 
   if (next.coffee.status === "brewing") {
-    const remaining = decrementTimer(next.coffee.timeRemaining, 1);
-    next.coffee.timeRemaining = remaining;
-    if (remaining === 0) {
-      next.coffee.status = next.coffee.lastSize === "lungo" ? "lungo-ready" : "espresso-ready";
+    next.coffee.timeRemaining = decrementTimer(next.coffee.timeRemaining, 1);
+    if (next.coffee.timeRemaining === 0) {
+      next.coffee.timeRemaining = 0;
+      next.coffee.timeTotal = next.coffee.timeTotal ?? (next.coffee.selectedSize === "lungo" ? LUNGO_SECONDS : ESPRESSO_SECONDS);
+      next.coffee.lastSize = next.coffee.selectedSize ?? next.coffee.lastSize ?? "espresso";
+      next.coffee.status = "ready";
     }
   }
 
-  if (next.oven.status === "heating") {
-    const remaining = decrementTimer(next.oven.timeRemaining, 1);
-    next.oven.timeRemaining = remaining;
-    if (remaining === 0) {
+  if (next.oven.status === "preheating") {
+    next.oven.temperature = Math.min(
+      next.oven.targetTemperature,
+      next.oven.temperature + OVEN_PREHEAT_RATE,
+    );
+    if (next.oven.temperature >= next.oven.targetTemperature) {
+      next.oven.temperature = next.oven.targetTemperature;
       next.oven.status = "ready";
-    } else if (typeof remaining === "number") {
-      next.oven.temperature = Math.min(240, next.oven.temperature + 2);
+    }
+  } else if (next.oven.status === "heating") {
+    next.oven.timeTotal = next.oven.timeTotal ?? OVEN_HEAT_SECONDS;
+    next.oven.timeRemaining = decrementTimer(next.oven.timeRemaining, 1);
+    if (next.oven.temperature < next.oven.targetTemperature) {
+      next.oven.temperature = Math.min(next.oven.targetTemperature, next.oven.temperature + OVEN_PREHEAT_RATE / 2);
+    }
+    if (next.oven.timeRemaining === 0) {
+      next.oven.status = "ready";
+      next.oven.timeRemaining = 0;
+      next.oven.temperature = next.oven.targetTemperature;
+    }
+  } else {
+    if (next.oven.temperature > AMBIENT_TEMPERATURE + 5) {
+      next.oven.temperature = Math.max(
+        AMBIENT_TEMPERATURE,
+        next.oven.temperature - OVEN_COOL_RATE,
+      );
+    }
+    if (next.oven.status === "ready" && next.oven.temperature <= AMBIENT_TEMPERATURE + 2) {
+      next.oven.status = "idle";
+      next.oven.timeRemaining = null;
+      next.oven.timeTotal = null;
     }
   }
 
@@ -202,6 +286,7 @@ const devicesToDto = (state: DevicesState, timestamp: string): DeviceStatusDto[]
     status: state.coffee.status,
     remainingSeconds: state.coffee.timeRemaining,
     totalSeconds: state.coffee.timeTotal,
+    selectedSize: state.coffee.selectedSize,
     lastSize: state.coffee.lastSize,
     updatedAt: timestamp,
   },
@@ -211,6 +296,7 @@ const devicesToDto = (state: DevicesState, timestamp: string): DeviceStatusDto[]
     remainingSeconds: state.oven.timeRemaining,
     totalSeconds: state.oven.timeTotal,
     temperature: state.oven.temperature,
+    targetTemperature: state.oven.targetTemperature,
     updatedAt: timestamp,
   },
 ];

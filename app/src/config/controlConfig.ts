@@ -9,23 +9,25 @@ export const MAX_LOG_ENTRIES = 50;
 
 export const INITIAL_DEVICES: DevicesState = {
   kettle: {
-    status: "ready",
-    temperature: 85,
-    targetTemperature: 85,
-    timeRemaining: 0,
-    timeTotal: 64,
+    status: "idle",
+    temperature: 26,
+    targetTemperature: 100,
+    timeRemaining: null,
+    timeTotal: null,
   },
   coffee: {
     status: "needs-capsule",
+    selectedSize: null,
     lastSize: null,
     timeRemaining: null,
     timeTotal: null,
   },
   oven: {
-    status: "heating",
-    temperature: 120,
-    timeRemaining: 64,
-    timeTotal: 64,
+    status: "idle",
+    temperature: 60,
+    targetTemperature: 180,
+    timeRemaining: null,
+    timeTotal: null,
   },
 };
 
@@ -45,21 +47,20 @@ export const MANUAL_SECTIONS: ManualControlSection[] = [
     id: "coffee",
     title: "Coffee Maker",
     actions: [
-      { id: "coffee_brew_espresso", label: "Brew Espresso", tone: "primary" },
-      { id: "coffee_ready_espresso", label: "Espresso Ready" },
-      { id: "coffee_brew_lungo", label: "Brew Lungo", tone: "primary" },
-      { id: "coffee_ready_lungo", label: "Lungo Ready" },
+      { id: "coffee_activate", label: "Activate Machine", tone: "primary" },
+      { id: "coffee_select_espresso", label: "Brew Espresso" },
+      { id: "coffee_select_lungo", label: "Brew Lungo" },
+      { id: "coffee_cancel", label: "Cancel Brew" },
       { id: "coffee_capsule_empty", label: "Set Capsule Empty", tone: "danger" },
       { id: "coffee_capsule_load", label: "Load Capsule" },
-      { id: "coffee_reset", label: "Reset Machine" },
     ],
   },
   {
     id: "oven",
     title: "Oven",
     actions: [
-      { id: "oven_start", label: "Start Heating", tone: "primary" },
-      { id: "oven_ready", label: "Mark Ready" },
+      { id: "oven_preheat", label: "Preheat", tone: "primary" },
+      { id: "oven_start_heat", label: "Start Heating", tone: "primary" },
       { id: "oven_stop", label: "Stop" },
     ],
   },
@@ -94,21 +95,21 @@ export const ACTION_CONFIG: Record<
     message: "Water kettle refilled",
     detection: { gesture: "Manual: Kettle Refilled" },
   },
-  coffee_brew_espresso: {
-    message: "Coffee brewing (espresso)",
+  coffee_activate: {
+    message: "Coffee machine activated",
+    detection: { gesture: "Manual: Activate Coffee" },
+  },
+  coffee_select_espresso: {
+    message: "Espresso brewing started",
     detection: { gesture: "Manual: Brew Espresso" },
   },
-  coffee_ready_espresso: {
-    message: "Espresso ready to serve",
-    detection: { gesture: "Manual: Espresso Ready" },
-  },
-  coffee_brew_lungo: {
-    message: "Coffee brewing (lungo)",
+  coffee_select_lungo: {
+    message: "Lungo brewing started",
     detection: { gesture: "Manual: Brew Lungo" },
   },
-  coffee_ready_lungo: {
-    message: "Lungo ready to serve",
-    detection: { gesture: "Manual: Lungo Ready" },
+  coffee_cancel: {
+    message: "Coffee brewing cancelled",
+    detection: { gesture: "Manual: Cancel Coffee" },
   },
   coffee_capsule_empty: {
     message: "Coffee capsule marked empty",
@@ -118,17 +119,13 @@ export const ACTION_CONFIG: Record<
     message: "Coffee capsule loaded",
     detection: { gesture: "Manual: Capsule Loaded" },
   },
-  coffee_reset: {
-    message: "Coffee machine reset",
-    detection: { gesture: "Manual: Coffee Reset" },
+  oven_preheat: {
+    message: "Oven preheating",
+    detection: { gesture: "Manual: Preheat Oven" },
   },
-  oven_start: {
+  oven_start_heat: {
     message: "Oven heating started",
     detection: { gesture: "Manual: Start Oven" },
-  },
-  oven_ready: {
-    message: "Oven ready",
-    detection: { gesture: "Manual: Oven Ready" },
   },
   oven_stop: {
     message: "Oven stopped",

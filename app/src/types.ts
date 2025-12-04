@@ -11,17 +11,18 @@ export type ControlAction =
 	| "kettle_stop"
 	| "kettle_empty"
 	| "kettle_refill"
-	| "coffee_brew_espresso"
-	| "coffee_ready_espresso"
-	| "coffee_brew_lungo"
-	| "coffee_ready_lungo"
+	| "coffee_activate"
+	| "coffee_select_espresso"
+	| "coffee_select_lungo"
+	| "coffee_cancel"
 	| "coffee_capsule_empty"
 	| "coffee_capsule_load"
-	| "coffee_reset"
-	| "oven_start"
-	| "oven_ready"
+	| "oven_preheat"
+	| "oven_start_heat"
 	| "oven_stop"
 	| "stop_all";
+
+export type CoffeeSize = "espresso" | "lungo";
 
 export interface LogEntry {
 	id: string;
@@ -32,7 +33,7 @@ export interface LogEntry {
 }
 
 export interface KettleState {
-	status: "idle" | "boiling" | "ready" | "water-empty";
+	status: "idle" | "boiling" | "ready" | "cooling" | "water-empty";
 	temperature: number;
 	targetTemperature: number;
 	timeRemaining: number | null;
@@ -40,20 +41,17 @@ export interface KettleState {
 }
 
 export interface CoffeeState {
-	status:
-		| "idle"
-		| "brewing"
-		| "espresso-ready"
-		| "lungo-ready"
-		| "needs-capsule";
-	lastSize: "espresso" | "lungo" | null;
+	status: "idle" | "waiting-selection" | "brewing" | "ready" | "needs-capsule";
+	selectedSize: CoffeeSize | null;
+	lastSize: CoffeeSize | null;
 	timeRemaining: number | null;
 	timeTotal: number | null;
 }
 
 export interface OvenState {
-	status: "idle" | "heating" | "ready";
+	status: "idle" | "preheating" | "heating" | "ready";
 	temperature: number;
+	targetTemperature: number;
 	timeRemaining: number | null;
 	timeTotal: number | null;
 }
@@ -121,7 +119,8 @@ export interface DeviceStatusDto {
 	totalSeconds?: number | null;
 	temperature?: number | null;
 	targetTemperature?: number | null;
-	lastSize?: "espresso" | "lungo" | null;
+	selectedSize?: CoffeeSize | null;
+	lastSize?: CoffeeSize | null;
 	updatedAt: string;
 }
 

@@ -8,45 +8,38 @@ import coffeeLungoImg from "../assets/CoffeeCupLungo.png";
 import ovenImg from "../assets/oven.png";
 import ovenHeatingImg from "../assets/OvenHalf.png";
 
-const formatSize = (size: "espresso" | "lungo" | null) =>
+const formatSize = (size: string | null) =>
   size ? size.charAt(0).toUpperCase() + size.slice(1) : "";
 
-const computeProgress = (remaining: number | null, total: number | null) => {
-  if (typeof remaining !== "number" || remaining < 0) {
-    return undefined;
-  }
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-  if (typeof total !== "number" || total <= 0) {
-    return undefined;
-  }
-
-  const progress = (total - remaining) / total;
-  return Math.min(1, Math.max(0, progress));
-};
-
-const describeKettleLabel = (devices: DevicesState["kettle"]) => {
-  switch (devices.status) {
+const describeKettleLabel = (kettle: DevicesState["kettle"]) => {
+  switch (kettle.status) {
     case "boiling":
-      return devices.timeRemaining
-        ? `Boiling (${devices.timeRemaining}s)`
+      return kettle.timeRemaining != null
+        ? `Boiling (${kettle.timeRemaining}s)`
         : "Boiling";
     case "ready":
       return "Ready";
+    case "cooling":
+      return `Cooling (${Math.round(kettle.temperature)}°C)`;
     case "water-empty":
       return "Needs Water";
     default:
-      return "Standby";
+      return `Standby (${Math.round(kettle.temperature)}°C)`;
   }
 };
 
-const describeCoffeeLabel = (devices: DevicesState["coffee"]) => {
-  switch (devices.status) {
+const describeCoffeeLabel = (coffee: DevicesState["coffee"]) => {
+  switch (coffee.status) {
+    case "waiting-selection":
+      return "Select Size";
     case "brewing":
-      return devices.lastSize ? `Brewing ${formatSize(devices.lastSize)}` : "Brewing";
-    case "espresso-ready":
-      return "Espresso Ready";
-    case "lungo-ready":
-      return "Lungo Ready";
+      return coffee.selectedSize
+        ? `Brewing ${formatSize(coffee.selectedSize)}`
+        : "Brewing";
+    case "ready":
+      return coffee.lastSize ? `${formatSize(coffee.lastSize)} Ready` : "Coffee Ready";
     case "needs-capsule":
       return "Capsule Empty";
     default:
@@ -54,11 +47,13 @@ const describeCoffeeLabel = (devices: DevicesState["coffee"]) => {
   }
 };
 
-const describeOvenLabel = (devices: DevicesState["oven"]) => {
-  switch (devices.status) {
+const describeOvenLabel = (oven: DevicesState["oven"]) => {
+  switch (oven.status) {
+    case "preheating":
+      return `Preheating (${Math.round(oven.temperature)}°C)`;
     case "heating":
-      return devices.timeRemaining
-        ? `Heating (${devices.timeRemaining}s)`
+      return oven.timeRemaining != null
+        ? `Heating (${oven.timeRemaining}s)`
         : "Heating";
     case "ready":
       return "Ready";
@@ -67,8 +62,8 @@ const describeOvenLabel = (devices: DevicesState["oven"]) => {
   }
 };
 
-const selectKettleIcon = (devices: DevicesState["kettle"]) => {
-  switch (devices.status) {
+const selectKettleIcon = (kettle: DevicesState["kettle"]) => {
+  switch (kettle.status) {
     case "water-empty":
       return { src: kettleEmptyImg, alt: "Kettle out of water" };
     case "ready":
@@ -78,12 +73,14 @@ const selectKettleIcon = (devices: DevicesState["kettle"]) => {
   }
 };
 
-const selectKettleStatusIcon = (devices: DevicesState["kettle"]) => {
-  switch (devices.status) {
+const selectKettleStatusIcon = (kettle: DevicesState["kettle"]) => {
+  switch (kettle.status) {
     case "ready":
       return "✓";
     case "boiling":
       return "◎";
+    case "cooling":
+      return "≈";
     case "water-empty":
       return "!";
     default:
@@ -91,33 +88,36 @@ const selectKettleStatusIcon = (devices: DevicesState["kettle"]) => {
   }
 };
 
-const selectCoffeeIcon = (devices: DevicesState["coffee"]) => {
-  switch (devices.status) {
-    case "espresso-ready":
+const selectCoffeeIcon = (coffee: DevicesState["coffee"]) => {
+  if (coffee.status === "ready") {
+    if (coffee.lastSize === "espresso") {
       return { src: coffeeEspressoImg, alt: "Espresso ready" };
-    case "lungo-ready":
+    }
+    if (coffee.lastSize === "lungo") {
       return { src: coffeeLungoImg, alt: "Lungo ready" };
-    default:
-      return { src: coffeeImg, alt: "Coffee maker" };
+    }
   }
+  return { src: coffeeImg, alt: "Coffee maker" };
 };
 
-const selectCoffeeStatusIcon = (devices: DevicesState["coffee"]) => {
-  switch (devices.status) {
+const selectCoffeeStatusIcon = (coffee: DevicesState["coffee"]) => {
+  switch (coffee.status) {
     case "needs-capsule":
       return "✕";
+    case "waiting-selection":
+      return "?";
     case "brewing":
       return "◎";
-    case "espresso-ready":
-    case "lungo-ready":
+    case "ready":
       return "✓";
     default:
       return "–";
   }
 };
 
-const selectOvenIcon = (devices: DevicesState["oven"]) => {
-  switch (devices.status) {
+const selectOvenIcon = (oven: DevicesState["oven"]) => {
+  switch (oven.status) {
+    case "preheating":
     case "heating":
       return { src: ovenHeatingImg, alt: "Oven heating" };
     default:
@@ -125,8 +125,9 @@ const selectOvenIcon = (devices: DevicesState["oven"]) => {
   }
 };
 
-const selectOvenStatusIcon = (devices: DevicesState["oven"]) => {
-  switch (devices.status) {
+const selectOvenStatusIcon = (oven: DevicesState["oven"]) => {
+  switch (oven.status) {
+    case "preheating":
     case "heating":
       return "◎";
     case "ready":
@@ -134,6 +135,94 @@ const selectOvenStatusIcon = (devices: DevicesState["oven"]) => {
     default:
       return "–";
   }
+};
+
+const describeKettleFooter = (kettle: DevicesState["kettle"]) => {
+  switch (kettle.status) {
+    case "boiling":
+      return kettle.timeRemaining != null ? `${kettle.timeRemaining} s` : "Heating";
+    case "ready":
+      return "Ready";
+    case "cooling":
+      return `${Math.round(kettle.temperature)} °C`;
+    case "water-empty":
+      return "Empty";
+    default:
+      return "Idle";
+  }
+};
+
+const describeCoffeeDetail = (coffee: DevicesState["coffee"]) => {
+  switch (coffee.status) {
+    case "waiting-selection":
+      return "Select espresso or lungo";
+    case "brewing":
+      if (coffee.selectedSize) {
+        return coffee.timeRemaining != null
+          ? `${formatSize(coffee.selectedSize)} in progress (${coffee.timeRemaining}s)`
+          : `${formatSize(coffee.selectedSize)} in progress`;
+      }
+      return "Brewing";
+    case "ready":
+      return coffee.lastSize ? `Serve ${formatSize(coffee.lastSize)}` : "Serve immediately";
+    case "needs-capsule":
+      return "Insert capsule";
+    default:
+      return coffee.lastSize ? `${formatSize(coffee.lastSize)} last brew` : "Standby";
+  }
+};
+
+const describeCoffeeFooter = (coffee: DevicesState["coffee"]) => {
+  switch (coffee.status) {
+    case "brewing":
+      return coffee.selectedSize ? formatSize(coffee.selectedSize) : "Brew";
+    case "ready":
+      return coffee.lastSize ? formatSize(coffee.lastSize) : "Ready";
+    case "needs-capsule":
+      return "Capsule";
+    default:
+      return "Idle";
+  }
+};
+
+const describeOvenDetail = (oven: DevicesState["oven"]) => {
+  switch (oven.status) {
+    case "preheating":
+      return `Target ${oven.targetTemperature} °C`;
+    case "heating":
+      return `${oven.temperature} °C`;
+    case "ready":
+      return `Holding ${oven.temperature} °C`;
+    default:
+      return `${oven.temperature} °C`;
+  }
+};
+
+const describeOvenFooter = (oven: DevicesState["oven"]) => {
+  switch (oven.status) {
+    case "preheating":
+      return `${Math.round(clamp01(oven.temperature / oven.targetTemperature) * 100)}%`;
+    case "heating":
+      return oven.timeRemaining != null ? `${oven.timeRemaining} s` : "Heating";
+    case "ready":
+      return "Ready";
+    default:
+      return "Idle";
+  }
+};
+
+const computeTimeProgress = (remaining: number | null, total: number | null) => {
+  if (typeof remaining !== "number" || typeof total !== "number" || total <= 0) {
+    return undefined;
+  }
+  return clamp01((total - remaining) / total);
+};
+
+const computeTemperatureProgress = (temperature: number, target: number) => {
+  if (target <= 0) {
+    return undefined;
+  }
+  return clamp01(temperature / target);
 };
 
 export const createDeviceSummaries = (
@@ -176,72 +265,14 @@ export const createDeviceSummaries = (
   ];
 };
 
-const describeKettleFooter = (devices: DevicesState["kettle"]) => {
-  switch (devices.status) {
-    case "boiling":
-      return devices.timeRemaining ? `${devices.timeRemaining} s` : "Heating";
-    case "ready":
-      return "Ready";
-    case "water-empty":
-      return "Empty";
-    default:
-      return "Idle";
-  }
-};
-
-const describeCoffeeDetail = (devices: DevicesState["coffee"]) => {
-  switch (devices.status) {
-    case "brewing":
-      if (devices.lastSize) {
-        return devices.timeRemaining != null
-          ? `${formatSize(devices.lastSize)} in progress (${devices.timeRemaining}s)`
-          : `${formatSize(devices.lastSize)} in progress`;
-      }
-      return devices.timeRemaining != null
-        ? `Brewing (${devices.timeRemaining}s)`
-        : "Brewing";
-    case "espresso-ready":
-    case "lungo-ready":
-      return "Serve immediately";
-    case "needs-capsule":
-      return "Insert capsule";
-    default:
-      return devices.lastSize ? `${formatSize(devices.lastSize)} last brew` : "Standby";
-  }
-};
-
-const describeCoffeeFooter = (devices: DevicesState["coffee"]) => {
-  switch (devices.status) {
-    case "brewing":
-    case "espresso-ready":
-    case "lungo-ready":
-      return devices.lastSize ? formatSize(devices.lastSize) : "Brew";
-    case "needs-capsule":
-      return "Capsule";
-    default:
-      return "Idle";
-  }
-};
-
-const describeOvenFooter = (devices: DevicesState["oven"]) => {
-  switch (devices.status) {
-    case "heating":
-      return devices.timeRemaining ? `${devices.timeRemaining} s` : "Heating";
-    case "ready":
-      return "Ready";
-    default:
-      return "Idle";
-  }
-};
-
 export const createDeviceCards = (devices: DevicesState): DeviceCardInfo[] => {
   const { kettle, coffee, oven } = devices;
 
   const kettleVariant =
-    kettle.status === "boiling"
-      ? "device-card--warning"
-      : kettle.status === "water-empty"
+    kettle.status === "water-empty"
       ? "device-card--alert"
+      : kettle.status === "boiling"
+      ? "device-card--warning"
       : "device-card--idle";
 
   const coffeeVariant =
@@ -252,69 +283,103 @@ export const createDeviceCards = (devices: DevicesState): DeviceCardInfo[] => {
       : "device-card--idle";
 
   const ovenVariant =
-    oven.status === "heating"
+    oven.status === "preheating" || oven.status === "heating"
       ? "device-card--warning"
-      : oven.status === "ready"
-      ? "device-card--idle"
       : "device-card--idle";
 
-  const kettleActive = kettle.status === "boiling";
-  const coffeeActive = coffee.status === "brewing";
-  const ovenActive = oven.status === "heating";
+  const kettleState = (() => {
+    switch (kettle.status) {
+      case "boiling":
+        return "Boiling";
+      case "ready":
+        return "Ready";
+      case "cooling":
+        return "Cooling";
+      case "water-empty":
+        return "Water Empty";
+      default:
+        return "Idle";
+    }
+  })();
+
+  const coffeeState = (() => {
+    switch (coffee.status) {
+      case "waiting-selection":
+        return "Select Size";
+      case "brewing":
+        return coffee.selectedSize
+          ? `Brewing ${formatSize(coffee.selectedSize)}`
+          : "Brewing";
+      case "ready":
+        return coffee.lastSize
+          ? `${formatSize(coffee.lastSize)} Ready`
+          : "Coffee Ready";
+      case "needs-capsule":
+        return "Capsule Empty";
+      default:
+        return "Idle";
+    }
+  })();
+
+  const ovenState = (() => {
+    switch (oven.status) {
+      case "preheating":
+        return "Preheating";
+      case "heating":
+        return "Heating";
+      case "ready":
+        return "Ready";
+      default:
+        return "Idle";
+    }
+  })();
+
+  const kettleProgress = kettle.status === "boiling"
+    ? computeTimeProgress(kettle.timeRemaining, kettle.timeTotal)
+    : undefined;
+
+  const coffeeProgress = coffee.status === "brewing"
+    ? computeTimeProgress(coffee.timeRemaining, coffee.timeTotal)
+    : undefined;
+
+  const ovenProgress = oven.status === "preheating"
+    ? computeTemperatureProgress(oven.temperature, oven.targetTemperature)
+    : oven.status === "heating"
+    ? computeTimeProgress(oven.timeRemaining, oven.timeTotal)
+    : undefined;
 
   return [
     {
       id: "card-kettle",
-      state:
-        kettle.status === "boiling"
-          ? "Boiling"
-          : kettle.status === "ready"
-          ? "Ready"
-          : kettle.status === "water-empty"
-          ? "Water Empty"
-          : "Standby",
+      state: kettleState,
       detail:
         kettle.status === "water-empty"
           ? "Refill water"
-          : `${kettle.targetTemperature} °C`,
+          : kettle.status === "boiling"
+          ? `${kettle.targetTemperature} °C target`
+          : `${Math.round(kettle.temperature)} °C`,
       footerLabel: describeKettleFooter(kettle),
       variant: kettleVariant,
-      progress: kettleActive ? computeProgress(kettle.timeRemaining, kettle.timeTotal) : undefined,
-      isActive: kettleActive,
+      progress: kettleProgress,
+      isActive: kettle.status === "boiling",
     },
     {
       id: "card-coffee",
-      state:
-        coffee.status === "brewing"
-          ? coffee.lastSize
-            ? `Brewing ${formatSize(coffee.lastSize)}`
-            : "Brewing"
-          : coffee.status === "espresso-ready"
-          ? "Espresso Ready"
-          : coffee.status === "lungo-ready"
-          ? "Lungo Ready"
-          : coffee.status === "needs-capsule"
-          ? "Capsule Empty"
-          : "Idle",
+      state: coffeeState,
       detail: describeCoffeeDetail(coffee),
       footerLabel: describeCoffeeFooter(coffee),
       variant: coffeeVariant,
-      progress: coffeeActive ? computeProgress(coffee.timeRemaining, coffee.timeTotal) : undefined,
-      isActive: coffeeActive,
+      progress: coffeeProgress,
+      isActive: coffee.status === "brewing",
     },
     {
       id: "card-oven",
-      state:
-        oven.status === "heating"
-          ? "Heating"
-          : oven.status === "ready"
-          ? "Ready"
-          : "Idle",
-      detail: `${oven.temperature} °C`,
+      state: ovenState,
+      detail: describeOvenDetail(oven),
       footerLabel: describeOvenFooter(oven),
       variant: ovenVariant,
-      progress: ovenActive ? computeProgress(oven.timeRemaining, oven.timeTotal) : undefined,
-      isActive: ovenActive,
+      progress: ovenProgress,
+      isActive: oven.status === "preheating" || oven.status === "heating",
     },
   ];
 };
