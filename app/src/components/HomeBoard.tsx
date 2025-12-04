@@ -1,3 +1,6 @@
+import "../styles/board-shared.css";
+import "../styles/home-board.css";
+
 import type {
   ControlAction,
   DetectionStatus,

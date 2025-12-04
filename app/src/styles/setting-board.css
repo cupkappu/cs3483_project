@@ -1,0 +1,161 @@
+.setting-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.setting-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 22px;
+}
+
+.setting-modes {
+  display: grid;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #f0ece3;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  width: 260px;
+  transition: background 0.2s ease;
+}
+
+.mode-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.05rem;
+  letter-spacing: 0.05em;
+}
+
+.mode-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #c93521;
+  border: 3px solid #a32d19;
+}
+
+.setting-camera {
+  flex: 1;
+  background: #f0ece3;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 18px 24px;
+  transition: background 0.2s ease;
+}
+
+.setting-camera h2 {
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.setting-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.setting-column {
+  background: #f0ece3;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background 0.2s ease;
+}
+
+.setting-column h2 {
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+}
+
+.setting-input-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+  font-size: 1.05rem;
+}
+
+.setting-spinner {
+  min-width: 62px;
+  padding: 6px 10px;
+  border: 2px solid #2f2a26;
+  border-radius: 6px;
+  background: #fdfdfd;
+  text-align: center;
+  font-weight: 600;
+}
+
+.setting-sliders {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.setting-slider {
+  flex: 1;
+  background: #f0ece3;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: repeat(2, auto);
+  column-gap: 12px;
+  row-gap: 12px;
+  align-items: center;
+  transition: background 0.2s ease;
+}
+
+.slider-icon {
+  grid-row: span 2;
+  font-size: 1.4rem;
+}
+
+.slider-label {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.slider-bar {
+  position: relative;
+  height: 18px;
+  background: linear-gradient(90deg, #2f2a26 0%, #5c5c66 80%);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.slider-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+}
+
+.slider-fill--high {
+  width: 75%;
+}
+
+.reset-button {
+  padding: 10px 34px;
+  background: var(--color-reset-button-bg);
+  color: #1f1d1a;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  height: 42px;
+  transition: background 0.2s ease;
+}
+
+.reset-button:hover {
+  opacity: 0.9;
+}

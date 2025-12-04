@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "../styles/board-shared.css";
 import type {
   ActionAvailabilityMap,
   ControlAction,
@@ -9,6 +10,7 @@ import type {
   ManualControlSection,
   ControlActionResult,
 } from "../types";
+import "../styles/manual-control-board.css";
 
 interface ManualControlBoardProps {
   sections: ManualControlSection[];

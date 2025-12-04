@@ -1,4 +1,5 @@
 import type { LogSummaryItem, LogTimelineItem } from "../types";
+import "../styles/log-board.css";
 
 interface LogBoardProps {
   total: number;

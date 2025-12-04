@@ -1,0 +1,138 @@
+.mode-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  padding: 10px 0;
+  font-size: 0.96rem;
+  cursor: pointer;
+  color: #312d28;
+}
+
+.mode-indicator {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--color-mode-indicator-border);
+  background: #f5efe5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mode-indicator::after {
+  content: "";
+}
+
+.mode-indicator.active {
+  border-color: var(--color-mode-indicator-active);
+}
+
+.mode-indicator.active::after {
+  content: "✓";
+  font-size: 1rem;
+  color: var(--color-mode-indicator-active);
+  line-height: 1;
+}
+
+.camera-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    var(--color-camera-gradient-start),
+    var(--color-camera-gradient-end)
+  );
+  color: #404a6b;
+  font-weight: 600;
+  height: 180px;
+  font-size: 0.95rem;
+  border: 2px solid rgba(47, 42, 38, 0.35);
+}
+
+.camera-frame--tall {
+  height: 210px;
+}
+
+.manual-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.manual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.manual-button {
+  padding: 6px 14px;
+  border: 1px solid var(--color-manual-button-border);
+  border-radius: 8px;
+  background: var(--color-manual-button-bg);
+  color: #2f2a26;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.manual-button:hover {
+  background: var(--color-manual-button-hover);
+  transform: translateY(1px);
+}
+
+.manual-button--primary {
+  background: var(--color-manual-button-primary-bg);
+  border-color: var(--color-manual-button-primary-border);
+}
+
+.manual-button--primary:hover {
+  background: var(--color-manual-button-primary-hover);
+}
+
+.manual-button--danger {
+  background: var(--color-manual-button-danger-bg);
+  border-color: var(--color-manual-button-danger-border);
+}
+
+.manual-button--danger:hover {
+  background: var(--color-manual-button-danger-hover);
+}
+
+.status-block {
+  margin-top: 14px;
+}
+
+.status-label {
+  font-weight: 600;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.status-icon {
+  font-size: 1.1rem;
+}
+
+.status-text {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-success {
+  color: var(--color-status-success);
+}

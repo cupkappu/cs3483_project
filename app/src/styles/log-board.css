@@ -1,0 +1,138 @@
+.log-layout {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr 0.6fr;
+  gap: 32px;
+  align-items: stretch;
+}
+
+.log-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  color: #1f1d1a;
+  height: 100%;
+}
+
+.log-column--summary {
+  border-right: 2px solid #bdb5a7;
+  padding-right: 24px;
+}
+
+.log-summary-body {
+  margin-top: 12px;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.log-count {
+  font-weight: 700;
+  font-size: 1.12rem;
+}
+
+.log-summary-body ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.log-summary-body li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.log-summary-body li::before {
+  content: "|";
+  margin-right: 8px;
+  color: #8c8375;
+  font-weight: 600;
+}
+
+.log-summary-body li span:first-child {
+  min-width: 88px;
+  letter-spacing: 0.08em;
+}
+
+.log-summary-body li span:last-child {
+  font-weight: 600;
+}
+
+.log-column--timeline {
+  padding: 0 12px;
+  border-right: 2px solid #bdb5a7;
+}
+
+.log-column--timeline ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  font-size: 1.05rem;
+}
+
+.log-column--timeline li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.log-time {
+  width: 56px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.log-event {
+  flex: 1;
+}
+
+.log-alert {
+  font-weight: 600;
+}
+
+.log-alert .log-event {
+  color: #b5322b;
+  font-weight: 700;
+}
+
+.log-column--actions {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 32px;
+  padding-left: 12px;
+}
+
+.log-button {
+  width: 100%;
+  padding: 18px 0;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.18);
+  background: var(--color-log-button-bg);
+  color: #2f2a26;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.log-button--primary {
+  background: var(--color-log-button-primary-bg);
+  color: #1f1d1a;
+}
+
+.log-button:hover {
+  transform: translateY(1px);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.16);
+}
+
+.log-empty {
+  margin-top: 16px;
+  color: #766f63;
+  font-style: italic;
+}

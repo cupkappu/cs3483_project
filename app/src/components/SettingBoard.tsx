@@ -1,3 +1,6 @@
+import "../styles/board-shared.css";
+import "../styles/setting-board.css";
+
 interface SettingBoardProps {
   colorblindMode: boolean;
   meetingMode: boolean;
