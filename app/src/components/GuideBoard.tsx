@@ -1,4 +1,5 @@
 import "../styles/board-shared.css";
+import "../styles/guide-board.css";
 import type { DetectionStatus, GuideSubState } from "../types";
 
 interface GuideBoardProps {

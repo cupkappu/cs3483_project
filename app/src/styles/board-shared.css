@@ -9,6 +9,7 @@
   font-size: 0.96rem;
   cursor: pointer;
   color: #312d28;
+  transition: background 0.2s ease;
 }
 
 .mode-indicator {

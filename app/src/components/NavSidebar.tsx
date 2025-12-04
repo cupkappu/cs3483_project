@@ -1,3 +1,4 @@
+import "../styles/nav-sidebar.css";
 import type { BoardState, GuideSubState } from "../types";
 
 interface NavSectionItem {
