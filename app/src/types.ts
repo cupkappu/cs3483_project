@@ -22,6 +22,41 @@ export type ControlAction =
 	| "oven_stop"
 	| "stop_all";
 
+export const GestureSignal = {
+	UpwardWave: "UpwardWave",
+	DownwardWave: "DownwardWave",
+	Fist: "Fist",
+	Palm: "Palm",
+	PushForward: "PushForward",
+	TwoHandPalm: "TwoHandPalm",
+	None: "None",
+} as const;
+
+export type GestureSignal = (typeof GestureSignal)[keyof typeof GestureSignal];
+
+export type GestureSignalActionMap = Partial<Record<GestureSignal, ControlAction>>;
+
+export type GestureSignalHandler = (signal: GestureSignal) => void;
+
+export interface HandKeypoint {
+	x: number;
+	y: number;
+	z?: number;
+	name?: string;
+}
+
+export interface HandPoseDetection {
+	confidence: number;
+	handedness?: string;
+	keypoints: HandKeypoint[];
+	keypoints3D: HandKeypoint[];
+}
+
+export interface HandFrame {
+	timestamp: number;
+	hands: HandPoseDetection[];
+}
+
 export type CoffeeSize = "espresso" | "lungo";
 
 export interface LogEntry {

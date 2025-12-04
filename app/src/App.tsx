@@ -11,6 +11,7 @@ import type {
   DeviceHeroSummary,
   DeviceId,
   DevicePollingSnapshot,
+  GestureSignal,
   GuideSubState,
   LogSummaryItem,
   LogTimelineItem,
@@ -84,6 +85,7 @@ interface ControlBoardViewProps {
   onExportLog: () => void;
   onUpdateOvenSettings: (settings: { targetTemperature: number; heatDuration: number }) => void;
   onResetOvenSettings: () => void;
+  onGestureDetected: (signal: GestureSignal) => void;
 }
 
 function ControlBoardView({
@@ -115,6 +117,7 @@ function ControlBoardView({
   onExportLog,
   onUpdateOvenSettings,
   onResetOvenSettings,
+  onGestureDetected,
 }: ControlBoardViewProps) {
   const renderHomeBoard = () => (
     <HomeBoard
@@ -125,6 +128,7 @@ function ControlBoardView({
       deviceCards={deviceCards}
       onToggleColorblind={onToggleColorblind}
       onToggleMeeting={onToggleMeeting}
+      onGestureDetected={onGestureDetected}
     />
   );
 
@@ -137,6 +141,7 @@ function ControlBoardView({
             tutorialPage={tutorialPage}
             onSelectTutorialPage={onSelectTutorialPage}
             detectionStatus={detectionStatus}
+            onGestureDetected={onGestureDetected}
           />
         );
       case "log":
@@ -159,6 +164,7 @@ function ControlBoardView({
             ovenSettings={ovenSettings}
             onUpdateOvenSettings={onUpdateOvenSettings}
             onResetOvenSettings={onResetOvenSettings}
+            onGestureDetected={onGestureDetected}
           />
         );
       case "manualControl":
@@ -220,6 +226,7 @@ export default function App() {
     handleClearLog,
     handleExportLog,
     handleManualAction,
+  handleGestureSignal,
     refreshDeviceStatus,
     latestSnapshot,
     lastActionResult,
@@ -354,6 +361,7 @@ export default function App() {
       onExportLog={handleExportLog}
       onUpdateOvenSettings={updateOvenSettings}
       onResetOvenSettings={resetOvenSettings}
+      onGestureDetected={handleGestureSignal}
     />
   );
 

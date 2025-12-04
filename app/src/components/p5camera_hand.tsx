@@ -1,6 +1,65 @@
 import Sketch from "react-p5";
 import p5Types from "p5";
-import { useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import * as tf from "@tensorflow/tfjs";
+import type { Tensor, Tensor2D } from "@tensorflow/tfjs-core";
+import { create, type KNNClassifier } from "@tensorflow-models/knn-classifier";
+import { GestureSignal, type GestureSignalHandler, type HandFrame, type HandKeypoint, type HandPoseDetection } from "../types";
+import { extractFeatureVector } from "../utils/featureExtraction";
+
+const MODEL_URL = new URL("../assets/gesture-knn-1764860392550.json", import.meta.url).href;
+const MAX_HANDS = 2;
+const FRAME_INTERVAL = 6;
+const MIN_PREDICTION_CONFIDENCE = 0.6;
+const GESTURE_COOLDOWN_MS = 1200;
+
+type SerializedTensor = {
+  data: number[];
+  shape: number[];
+};
+
+interface SerializedKnnModel {
+  exportedAt: string;
+  featureSize?: number | null;
+  classExampleCount: Record<string, number>;
+  dataset: Record<string, SerializedTensor>;
+}
+
+const ensureKeypoints = (points: any[] | undefined): HandKeypoint[] => {
+  if (!points || !Array.isArray(points)) {
+    return [];
+  }
+  return points.map((point) => ({
+    x: Number(point?.x) || 0,
+    y: Number(point?.y) || 0,
+    z: typeof point?.z === "number" ? point.z : undefined,
+    name: typeof point?.name === "string" ? point.name : undefined,
+  }));
+};
+
+const extractHandedness = (detection: any, fallbackIndex: number): string | undefined => {
+  const raw = detection?.handedness ?? detection?.label ?? detection?.annotations?.handedness;
+  if (typeof raw === "string") {
+    return raw;
+  }
+  if (Array.isArray(raw) && typeof raw[0] === "string") {
+    return raw[0];
+  }
+  return fallbackIndex === 0 ? "Unknown-0" : fallbackIndex === 1 ? "Unknown-1" : undefined;
+};
+
+const mapDetectionsToHands = (detections: any[]): HandPoseDetection[] => {
+  return detections.slice(0, MAX_HANDS).map((detection, index) => ({
+    confidence: Number(detection?.confidence ?? detection?.handInViewConfidence ?? 0),
+    handedness: extractHandedness(detection, index),
+    keypoints: ensureKeypoints(detection?.keypoints),
+    keypoints3D: ensureKeypoints(detection?.keypoints3D),
+  }));
+};
+
+const isKnownGesture = (label: string): label is GestureSignal => {
+  return Object.values(GestureSignal).includes(label as GestureSignal);
+};
 
 export default function P5camera_hand({
   canvas_size: { width, height },
@@ -8,94 +67,245 @@ export default function P5camera_hand({
   confidence_callback,
 }: {
   canvas_size: { width: number; height: number };
-  gesture_callback: (gesture: string) => void;
+  gesture_callback: GestureSignalHandler;
   confidence_callback: (confidence: number) => void;
 }) {
   const handPoseRef = useRef<any>(null);
-  const videoRef = useRef<any>(null);
+  const videoRef = useRef<p5Types.Element | null>(null);
   const detectionsRef = useRef<any[]>([]);
-  const lastDirectionRef = useRef<string>("");
-  const frameCountRef = useRef(0);
+  const lastGestureRef = useRef<GestureSignal>(GestureSignal.None);
+  const frameCounterRef = useRef(0);
+  const classifierRef = useRef<KNNClassifier | null>(null);
+  const featureSizeRef = useRef<number | null>(null);
+  const datasetTensorsRef = useRef<tf.Tensor[]>([]);
+  const predictionInFlightRef = useRef(false);
+  const lastGestureTimeRef = useRef<number>(0);
+  const pendingNoneRef = useRef(false);
 
+  const loadClassifier = useCallback(async () => {
+    if (classifierRef.current) {
+      return classifierRef.current;
+    }
 
-  const setup = (p5: p5Types, canvasParentRef: Element) => {
-    p5.createCanvas(width, height).parent(canvasParentRef);
-    videoRef.current = p5.createCapture("video");
-    videoRef.current.size(width, height);
-    videoRef.current.hide();
+    await tf.ready();
+    const response = await fetch(MODEL_URL);
+    if (!response.ok) {
+      throw new Error(`无法加载手势模型: ${response.status}`);
+    }
 
-    setTimeout(async () => {
-      const ml5 = (window as any).ml5;
-      if (ml5 && ml5.handPose) {
-        let options = { maxHands: 1, flipped: false };
-        handPoseRef.current = await ml5.handPose(options);
-        handPoseRef.current.detectStart(
-            videoRef.current, (results: any) => {
-                detectionsRef.current = results;
-            },
-    );
-      }
-    }, 2000);
-  };
+    const payload = (await response.json()) as SerializedKnnModel;
+    if (!payload?.dataset) {
+      throw new Error("手势模型格式不正确");
+    }
 
-  const draw = (p5: p5Types) => {
-    if (!videoRef.current) return; // Wait for video to be initialized
-    
-    p5.image(videoRef.current, 0, 0, p5.width, p5.height);
-    
-    if (detectionsRef.current && detectionsRef.current.length > 0) {
-      drawKeypoints(p5, detectionsRef.current);
+  const classifier = create();
+  const tensors: tf.Tensor[] = [];
 
-      // Only update every 10 frames to reduce callback frequency
-      frameCountRef.current++;
-      if (frameCountRef.current % 10 === 0) {
-        const angle = detectDirection(detectionsRef.current[0]);
-        const confidence = detectionsRef.current[0].confidence;
-        confidence_callback(confidence);
-        if (angle && angle !== lastDirectionRef.current) {
-          gesture_callback(`${angle}°`);
-          lastDirectionRef.current = angle;
+    const datasetEntries = Object.entries(payload.dataset).map(([label, value]) => {
+      const tensor = tf.tensor2d(value.data, value.shape as [number, number]);
+      tensors.push(tensor);
+      return [label, tensor] as const;
+    });
+
+    const dataset = Object.fromEntries(datasetEntries) as Record<string, tf.Tensor2D>;
+    classifier.setClassifierDataset(dataset as unknown as { [label: string]: Tensor2D });
+    classifierRef.current = classifier;
+    datasetTensorsRef.current = tensors;
+    featureSizeRef.current = typeof payload.featureSize === "number" ? payload.featureSize : datasetEntries[0]?.[1].shape?.[0] ?? null;
+
+    return classifier;
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await loadClassifier();
+      } catch (error) {
+        if (!cancelled) {
+          console.error("加载手势识别模型失败", error);
         }
       }
-    };
+    })();
 
-  };
-
-  const drawKeypoints = (p5: p5Types, detections: any[]) => {
-    p5.noStroke();
-    p5.fill(0, 255, 0);
-    for (let i = 0; i < detections.length; i++) {
-      let detection = detections[i];
-      for (let j = 0; j < detection.keypoints.length; j++) {
-        let keypoint = detection.keypoints[j];
-        p5.circle(keypoint.x, keypoint.y, 5);
+    return () => {
+      cancelled = true;
+      try {
+        handPoseRef.current?.detectStop?.();
+      } catch (error) {
+        console.warn("停止手势检测失败", error);
       }
-    }
-  };
-  
+      classifierRef.current?.dispose();
+      classifierRef.current = null;
+      datasetTensorsRef.current.forEach((tensor) => tensor.dispose());
+      datasetTensorsRef.current = [];
+      videoRef.current?.remove?.();
+      videoRef.current = null;
+    };
+  }, [loadClassifier]);
 
-  const detectDirection = (detection: any) => {
-    if (!detection || !detection.keypoints3D) return null;
-    
-    // Use wrist and middle finger tip to determine hand pointing direction
-    const wrist = detection.keypoints3D[0]; // 手腕
-    const middleFingerTip = detection.keypoints3D[12]; // 中指指尖
-    
-    // Calculate vector from wrist to middle finger tip
-    const dx = middleFingerTip.x - wrist.x;
-    const dy = middleFingerTip.y - wrist.y;
-    const dz = middleFingerTip.z - wrist.z;
-    
-    // Calculate the length of the horizontal projection (x-z plane)
-    const horizontalLength = Math.sqrt(dx * dx + dz * dz);
-    
-    // Calculate elevation angle (angle from horizontal plane)
-    // Positive angle = pointing up, Negative angle = pointing down
-    const elevationAngle = Math.atan2(-dy, horizontalLength) * (180 / Math.PI);
-    
-    return elevationAngle.toFixed(1);
-  };
-  // gesture_callback("test_gesture");
+  const setup = useCallback(
+    (p5: p5Types, canvasParentRef: Element) => {
+      const renderer = p5.createCanvas(width, height);
+      renderer.parent(canvasParentRef);
+
+      const video = p5.createCapture({
+        video: {
+          facingMode: "user",
+          width,
+          height,
+        },
+        audio: false,
+      });
+      video.size(width, height);
+      video.hide();
+      videoRef.current = video;
+
+      const initialiseHandPose = async () => {
+        try {
+          const ml5 = (window as any).ml5;
+          if (!ml5?.handPose) {
+            throw new Error("ml5.handPose 未找到");
+          }
+          const model = await ml5.handPose({ maxHands: MAX_HANDS, flipped: true });
+          handPoseRef.current = model;
+          model.detectStart(video.elt, (results: any[]) => {
+            detectionsRef.current = results ?? [];
+          });
+        } catch (error) {
+          console.error("初始化手势检测失败", error);
+        }
+      };
+
+      const element = video.elt as HTMLVideoElement;
+      if (element.readyState >= 2) {
+        void initialiseHandPose();
+      } else {
+        element.onloadeddata = () => {
+          void initialiseHandPose();
+        };
+      }
+    },
+    [height, width]
+  );
+
+  const draw = useCallback(
+    (p5: p5Types) => {
+      const video = videoRef.current;
+      if (!video) {
+        return;
+      }
+
+      p5.push();
+      p5.translate(width, 0);
+      p5.scale(-1, 1);
+      p5.image(video, 0, 0, width, height);
+      p5.pop();
+
+      if (!detectionsRef.current.length) {
+        if (lastGestureRef.current !== GestureSignal.None) {
+          gesture_callback(GestureSignal.None);
+          lastGestureRef.current = GestureSignal.None;
+        }
+        pendingNoneRef.current = false;
+        if (frameCounterRef.current % FRAME_INTERVAL === 0) {
+          confidence_callback(0);
+        }
+        frameCounterRef.current += 1;
+        return;
+      }
+
+      const hands = mapDetectionsToHands(detectionsRef.current);
+
+      p5.push();
+      const colors = [
+        { stroke: [96, 185, 255] as [number, number, number] },
+        { stroke: [255, 153, 204] as [number, number, number] },
+      ];
+      hands.forEach((hand, index) => {
+        const color = colors[index % colors.length];
+        p5.noFill();
+        p5.stroke(...color.stroke);
+        p5.strokeWeight(2);
+        hand.keypoints.forEach((point) => {
+          const { x, y } = point;
+          const mirroredX = width - x;
+          p5.circle(mirroredX, y, 6);
+        });
+      });
+      p5.pop();
+
+      frameCounterRef.current += 1;
+      if (frameCounterRef.current % FRAME_INTERVAL !== 0) {
+        return;
+      }
+
+      const frame: HandFrame = {
+        timestamp: Date.now(),
+        hands,
+      };
+      const feature = extractFeatureVector([frame]);
+      if (!feature?.length) {
+        confidence_callback(0);
+        return;
+      }
+
+      if (featureSizeRef.current && feature.length !== featureSizeRef.current) {
+        console.warn("特征长度与模型不匹配", feature.length, featureSizeRef.current);
+        return;
+      }
+
+      const classifier = classifierRef.current;
+      if (!classifier || predictionInFlightRef.current) {
+        return;
+      }
+
+      predictionInFlightRef.current = true;
+      const tensor = tf.tensor2d([feature]);
+      classifier
+        .predictClass(tensor as unknown as Tensor)
+        .then((prediction) => {
+          const confidences = prediction?.confidences ?? {};
+          const topConfidence = prediction?.label ? confidences[prediction.label] ?? 0 : 0;
+          const normalizedConfidence = topConfidence ?? 0;
+          confidence_callback(normalizedConfidence);
+
+          const now = Date.now();
+          const isConfidentPrediction =
+            Boolean(prediction?.label) && normalizedConfidence >= MIN_PREDICTION_CONFIDENCE && isKnownGesture(prediction.label);
+
+          if (isConfidentPrediction) {
+            const label = prediction.label as GestureSignal;
+            const cooldownElapsed = now - lastGestureTimeRef.current >= GESTURE_COOLDOWN_MS;
+            const readyForNextGesture = cooldownElapsed && !pendingNoneRef.current;
+
+            if (readyForNextGesture) {
+              if (label !== lastGestureRef.current) {
+                gesture_callback(label);
+                lastGestureRef.current = label;
+              }
+              lastGestureTimeRef.current = now;
+              pendingNoneRef.current = true;
+            }
+            return;
+          }
+
+          if (pendingNoneRef.current && lastGestureRef.current !== GestureSignal.None) {
+            gesture_callback(GestureSignal.None);
+            lastGestureRef.current = GestureSignal.None;
+            pendingNoneRef.current = false;
+          }
+        })
+        .catch((error) => {
+          console.error("手势识别失败", error);
+        })
+        .finally(() => {
+          predictionInFlightRef.current = false;
+          tensor.dispose();
+        });
+    },
+    [confidence_callback, gesture_callback, height, width]
+  );
 
   return <Sketch setup={setup} draw={draw} />;
 }

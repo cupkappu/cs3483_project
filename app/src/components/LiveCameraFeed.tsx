@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import type { GestureSignal } from "../types";
 import P5cameraHand from "./p5camera_hand";
 
 interface LiveCameraFeedProps {
@@ -7,7 +8,7 @@ interface LiveCameraFeedProps {
   frameClassName?: string;
   statusClassName?: string;
   showStatus?: boolean;
-  onGestureChange?: (gesture: string) => void;
+  onGestureChange?: (gesture: GestureSignal) => void;
   onConfidenceChange?: (confidence: number | null) => void;
 }
 
@@ -20,11 +21,11 @@ export default function LiveCameraFeed({
   onGestureChange,
   onConfidenceChange,
 }: LiveCameraFeedProps) {
-  const [gesture, setGesture] = useState<string>("–");
+  const [gesture, setGesture] = useState<GestureSignal | null>(null);
   const [confidence, setConfidence] = useState<number | null>(null);
 
   const handleGestureUpdate = useCallback(
-    (nextGesture: string) => {
+    (nextGesture: GestureSignal) => {
       setGesture((prev) => {
         if (prev === nextGesture) {
           return prev;
@@ -58,6 +59,8 @@ export default function LiveCameraFeed({
       ? "–"
       : `${Math.round(Math.max(0, Math.min(100, confidence * 100)))}%`;
 
+  const gestureLabel = gesture ?? "–";
+
   const wrapperClasses = wrapperClassName ? `live-camera-feed ${wrapperClassName}` : "live-camera-feed";
   const frameClasses = frameClassName ?? "camera-frame camera-frame--live";
   const statusClasses = statusClassName ?? "camera-status";
@@ -73,7 +76,7 @@ export default function LiveCameraFeed({
       </div>
       {showStatus && (
         <div className={statusClasses}>
-          <span>Gesture: {gesture}</span>
+          <span>Gesture: {gestureLabel}</span>
           <span>Confidence: {confidenceLabel}</span>
         </div>
       )}

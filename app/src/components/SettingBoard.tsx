@@ -1,4 +1,5 @@
 import type { ChangeEvent } from "react";
+import type { GestureSignal } from "../types";
 import "../styles/board-shared.css";
 import "../styles/setting-board.css";
 import LiveCameraFeed from "./LiveCameraFeed";
@@ -14,6 +15,7 @@ interface SettingBoardProps {
   };
   onUpdateOvenSettings: (settings: { targetTemperature: number; heatDuration: number }) => void;
   onResetOvenSettings: () => void;
+  onGestureDetected?: (signal: GestureSignal) => void;
 }
 
 export default function SettingBoard({
@@ -24,6 +26,7 @@ export default function SettingBoard({
   ovenSettings,
   onUpdateOvenSettings,
   onResetOvenSettings,
+  onGestureDetected,
 }: SettingBoardProps) {
   const handleTemperatureChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextValue = Number.parseInt(event.target.value, 10);
@@ -70,6 +73,7 @@ export default function SettingBoard({
           canvasSize={{ width: 320, height: 240 }}
           frameClassName="camera-frame camera-frame--live"
           showStatus={false}
+          onGestureChange={onGestureDetected}
         />
       </div>
 

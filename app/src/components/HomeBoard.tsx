@@ -6,6 +6,7 @@ import type {
   DetectionStatus,
   DeviceCardInfo,
   DeviceHeroSummary,
+  GestureSignal,
 } from "../types";
 
 interface HomeBoardProps {
@@ -16,6 +17,7 @@ interface HomeBoardProps {
   deviceCards: DeviceCardInfo[];
   onToggleColorblind: () => void;
   onToggleMeeting: () => void;
+  onGestureDetected?: (signal: GestureSignal) => void;
 }
 
 export default function HomeBoard({
@@ -26,6 +28,7 @@ export default function HomeBoard({
   deviceCards,
   onToggleColorblind,
   onToggleMeeting,
+  onGestureDetected,
 }: HomeBoardProps) {
   return (
     <div className="home-board">
@@ -58,6 +61,7 @@ export default function HomeBoard({
             wrapperClassName="home-camera-block"
             frameClassName="camera-feed camera-frame--live"
             showStatus={false}
+            onGestureChange={onGestureDetected}
           />
         </section>
 

@@ -1,13 +1,14 @@
 import "../styles/board-shared.css";
 import "../styles/guide-board.css";
 import LiveCameraFeed from "./LiveCameraFeed";
-import type { DetectionStatus, GuideSubState } from "../types";
+import type { DetectionStatus, GestureSignal, GuideSubState } from "../types";
 
 interface GuideBoardProps {
   guideState: GuideSubState;
   tutorialPage: number;
   onSelectTutorialPage: (page: number) => void;
   detectionStatus: DetectionStatus;
+  onGestureDetected?: (signal: GestureSignal) => void;
 }
 
 const tutorialPages = [1, 2, 3, 4];
@@ -92,9 +93,10 @@ export default function GuideBoard({
   tutorialPage,
   onSelectTutorialPage,
   detectionStatus,
+  onGestureDetected,
 }: GuideBoardProps) {
   if (guideState === "manual") {
-    return <ManualBoard detectionStatus={detectionStatus} />;
+    return <ManualBoard detectionStatus={detectionStatus} onGestureDetected={onGestureDetected} />;
   }
 
   return (
@@ -102,6 +104,7 @@ export default function GuideBoard({
       page={tutorialPage}
       onSelectPage={onSelectTutorialPage}
       detectionStatus={detectionStatus}
+      onGestureDetected={onGestureDetected}
     />
   );
 }
@@ -110,10 +113,12 @@ function TutorialBoard({
   page,
   onSelectPage,
   detectionStatus,
+  onGestureDetected,
 }: {
   page: number;
   onSelectPage: (page: number) => void;
   detectionStatus: DetectionStatus;
+  onGestureDetected?: (signal: GestureSignal) => void;
 }) {
   const content = tutorialContent[page] ?? tutorialContent[1];
   const gesturePositive = detectionStatus.gesture !== "NONE";
@@ -143,7 +148,11 @@ function TutorialBoard({
       <div className="tutorial-columns">
         <section className="tutorial-column">
           <h2>LIVE CAMERA</h2>
-          <LiveCameraFeed frameClassName="camera-frame camera-frame--live" showStatus={false} />
+          <LiveCameraFeed
+            frameClassName="camera-frame camera-frame--live"
+            showStatus={false}
+            onGestureChange={onGestureDetected}
+          />
           <div className="status-block">
             <span className="status-label">{content.gestureNote ?? "Gesture Detect:"}</span>
             <div className="status-line">
@@ -224,8 +233,10 @@ const nextTutorialPage = (current: number): number => {
 
 function ManualBoard({
   detectionStatus,
+  onGestureDetected,
 }: {
   detectionStatus: DetectionStatus;
+  onGestureDetected?: (signal: GestureSignal) => void;
 }) {
   const gesturePositive = detectionStatus.gesture !== "NONE";
   const voicePositive = detectionStatus.voice !== "NONE";
@@ -292,6 +303,7 @@ function ManualBoard({
         <LiveCameraFeed
           frameClassName="camera-frame camera-frame--live camera-frame--tall"
           showStatus={false}
+          onGestureChange={onGestureDetected}
         />
         <div className="status-block">
           <span className="status-label">Gesture Detect:</span>

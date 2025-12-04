@@ -1,7 +1,9 @@
+import { GestureSignal } from "../types";
 import type {
   ControlAction,
   DetectionStatus,
   DevicesState,
+  GestureSignalActionMap,
   ManualControlSection,
 } from "../types";
 
@@ -135,4 +137,13 @@ export const ACTION_CONFIG: Record<
     message: "Emergency stop triggered",
     detection: { gesture: "Manual: STOP ALL", voice: "Manual: STOP" },
   },
+};
+
+export const GESTURE_TO_ACTION: GestureSignalActionMap = {
+  [GestureSignal.UpwardWave]: "kettle_start",
+  [GestureSignal.DownwardWave]: "coffee_activate",
+  [GestureSignal.Fist]: "coffee_select_espresso",
+  [GestureSignal.Palm]: "coffee_select_lungo",
+  [GestureSignal.PushForward]: "oven_start_heat",
+  [GestureSignal.TwoHandPalm]: "stop_all",
 };

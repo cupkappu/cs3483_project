@@ -9,10 +9,12 @@ import type {
   DeviceStatusDto,
   DeviceId,
   DevicesState,
+  GestureSignal,
   LogEntry,
 } from "../types";
 import {
   ACTION_CONFIG,
+  GESTURE_TO_ACTION,
   INITIAL_DEVICES,
   MANUAL_SECTIONS,
   MAX_LOG_ENTRIES,
@@ -516,6 +518,7 @@ interface ControlManagerApi {
   performAction: (action: ControlAction, source?: ControlSource) => ControlActionResult;
   handleManualAction: (action: ControlAction) => ControlActionResult;
   handleStopAll: () => void;
+  handleGestureSignal: (signal: GestureSignal) => ControlActionResult | null;
   handleClearLog: () => void;
   handleExportLog: () => void;
   refreshDeviceStatus: () => Promise<DevicePollingSnapshot>;
@@ -619,6 +622,20 @@ export const useControlManager = (): ControlManagerApi => {
   const handleManualAction = useCallback(
     (action: ControlAction) => {
       return performAction(action, "manual");
+    },
+    [performAction],
+  );
+
+  const handleGestureSignal = useCallback(
+    (signal: GestureSignal) => {
+      setDetectionStatus((prev) => ({ ...prev, gesture: signal }));
+      const action = GESTURE_TO_ACTION[signal];
+      if (!action) {
+        return null;
+      }
+      const result = performAction(action, "gesture");
+      setDetectionStatus((prev) => ({ ...prev, gesture: signal }));
+      return result;
     },
     [performAction],
   );
@@ -727,6 +744,7 @@ export const useControlManager = (): ControlManagerApi => {
     actionAvailability,
     performAction,
     handleManualAction,
+  handleGestureSignal,
     handleStopAll,
     handleClearLog,
     handleExportLog,
