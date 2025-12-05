@@ -13,7 +13,6 @@ interface NavSidebarProps {
   onSelectBoard: (state: BoardState) => void;
   onSelectGuide: (state: GuideSubState) => void;
   onStopAll: () => void;
-  showManualTest: boolean;
 }
 
 export default function NavSidebar({
@@ -22,7 +21,6 @@ export default function NavSidebar({
   onSelectBoard,
   onSelectGuide,
   onStopAll,
-  showManualTest,
 }: NavSidebarProps) {
   const navItems: NavSectionItem[] = [
     { id: "home", label: "Home" },
@@ -34,7 +32,6 @@ export default function NavSidebar({
         { id: "manual", label: "Manual" },
       ],
     },
-    ...(showManualTest ? ([{ id: "manualControl", label: "Manual Test" }] as NavSectionItem[]) : []),
     { id: "log", label: "Log" },
     { id: "setting", label: "Setting" },
   ];

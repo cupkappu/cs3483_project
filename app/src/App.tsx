@@ -1,21 +1,17 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import type { ReactNode } from "react";
 import "./App.css";
 import "./styles/desktop-shell.css";
 import type {
-  ActionAvailabilityMap,
   BoardState,
-  ControlAction,
-  ControlActionResult,
   DetectionStatus,
   DeviceCardInfo,
   DeviceHeroSummary,
   DeviceId,
-  DevicePollingSnapshot,
   GestureSignal,
   GuideSubState,
   LogSummaryItem,
   LogTimelineItem,
-  ManualControlSection,
 } from "./types";
 import NavSidebar from "./components/NavSidebar";
 import HomeBoard from "./components/HomeBoard";
@@ -26,9 +22,8 @@ import SettingBoard from "./components/SettingBoard";
 import DesktopWindow from "./components/DesktopWindow";
 import MiniStatusWindow from "./components/MiniStatusWindow";
 import { useControlManager } from "./hooks/useControlManager";
-import { ENABLE_MANUAL_TEST } from "./config/featureFlags";
 
-type WindowId = "control" | "mini";
+type WindowId = "control" | "manual" | "mini";
 
 interface WindowPosition {
   x: number;
@@ -46,6 +41,13 @@ interface ControlWindowState {
   isMinimized: boolean;
 }
 
+interface ManualWindowState {
+  position: WindowPosition;
+  size: WindowSize;
+  isMinimized: boolean;
+  isOpen: boolean;
+}
+
 interface MiniWindowState {
   position: WindowPosition;
   size: WindowSize;
@@ -61,13 +63,9 @@ interface ControlBoardViewProps {
   detectionStatus: DetectionStatus;
   deviceSummaries: DeviceHeroSummary[];
   deviceCards: DeviceCardInfo[];
-  manualSections: ManualControlSection[];
-  actionAvailability: ActionAvailabilityMap;
   logSummaryItems: LogSummaryItem[];
   timelineItems: LogTimelineItem[];
   logCount: number;
-  latestSnapshot: DevicePollingSnapshot | null;
-  lastActionResult: ControlActionResult | null;
   tutorialPage: number;
   ovenSettings: {
     targetTemperature: number;
@@ -78,14 +76,13 @@ interface ControlBoardViewProps {
   onSelectBoard: (state: BoardState) => void;
   onSelectGuide: (state: GuideSubState) => void;
   onSelectTutorialPage: (page: number) => void;
-  onManualAction: (action: ControlAction) => ControlActionResult;
-  onRefreshDevices: () => Promise<DevicePollingSnapshot>;
   onStopAll: () => void;
   onClearLog: () => void;
   onExportLog: () => void;
   onUpdateOvenSettings: (settings: { targetTemperature: number; heatDuration: number }) => void;
   onResetOvenSettings: () => void;
   onGestureDetected: (signal: GestureSignal) => void;
+  renderManualBoard: () => ReactNode;
 }
 
 function ControlBoardView({
@@ -96,13 +93,9 @@ function ControlBoardView({
   detectionStatus,
   deviceSummaries,
   deviceCards,
-  manualSections,
-  actionAvailability,
   logSummaryItems,
   timelineItems,
   logCount,
-  latestSnapshot,
-  lastActionResult,
   tutorialPage,
   ovenSettings,
   onToggleColorblind,
@@ -110,14 +103,13 @@ function ControlBoardView({
   onSelectBoard,
   onSelectGuide,
   onSelectTutorialPage,
-  onManualAction,
-  onRefreshDevices,
   onStopAll,
   onClearLog,
   onExportLog,
   onUpdateOvenSettings,
   onResetOvenSettings,
   onGestureDetected,
+  renderManualBoard,
 }: ControlBoardViewProps) {
   const renderHomeBoard = () => (
     <HomeBoard
@@ -168,21 +160,7 @@ function ControlBoardView({
           />
         );
       case "manualControl":
-        if (ENABLE_MANUAL_TEST) {
-          return (
-            <ManualControlBoard
-              sections={manualSections}
-              detectionStatus={detectionStatus}
-              latestSnapshot={latestSnapshot}
-              onAction={onManualAction}
-              actionAvailability={actionAvailability}
-              onRefresh={onRefreshDevices}
-              timelineItems={timelineItems}
-              lastActionResult={lastActionResult}
-            />
-          );
-        }
-        return renderHomeBoard();
+        return renderManualBoard();
       case "home":
       default:
         return renderHomeBoard();
@@ -199,7 +177,6 @@ function ControlBoardView({
         onSelectBoard={onSelectBoard}
         onSelectGuide={onSelectGuide}
         onStopAll={onStopAll}
-        showManualTest={ENABLE_MANUAL_TEST}
       />
       <main className="board">{renderBoard()}</main>
     </div>
@@ -235,10 +212,42 @@ export default function App() {
     resetOvenSettings,
   } = useControlManager();
 
+  const renderManualBoard = useCallback(
+    () => (
+      <ManualControlBoard
+        sections={manualSections}
+        detectionStatus={detectionStatus}
+        latestSnapshot={latestSnapshot}
+        onAction={handleManualAction}
+        actionAvailability={actionAvailability}
+        onRefresh={refreshDeviceStatus}
+        timelineItems={timelineItems}
+        lastActionResult={lastActionResult}
+      />
+    ),
+    [
+      manualSections,
+      detectionStatus,
+      latestSnapshot,
+      handleManualAction,
+      actionAvailability,
+      refreshDeviceStatus,
+      timelineItems,
+      lastActionResult,
+    ],
+  );
+
   const [controlWindow, setControlWindow] = useState<ControlWindowState>({
     position: { x: 72, y: 64 },
     size: { width: 1080, height: 720 },
     isMinimized: false,
+  });
+
+  const [manualWindow, setManualWindow] = useState<ManualWindowState>({
+    position: { x: 990, y: 96 },
+    size: { width: 480, height: 640 },
+    isMinimized: false,
+    isOpen: true,
   });
 
   const [miniWindow, setMiniWindow] = useState<MiniWindowState>({
@@ -248,7 +257,7 @@ export default function App() {
     isOpen: true,
   });
 
-  const [zOrder, setZOrder] = useState<WindowId[]>(["control", "mini"]);
+  const [zOrder, setZOrder] = useState<WindowId[]>(["control", "manual", "mini"]);
 
   const bringToFront = (id: WindowId) => {
     setZOrder((order) => {
@@ -267,14 +276,19 @@ export default function App() {
     bringToFront("control");
   };
 
+  const ensureManualVisible = () => {
+    setManualWindow((prev) => ({ ...prev, isOpen: true, isMinimized: false }));
+    bringToFront("manual");
+  };
+
   const ensureMiniVisible = () => {
     setMiniWindow((prev) => ({ ...prev, isOpen: true, isMinimized: false }));
     bringToFront("mini");
   };
 
   const handleSelectBoard = (state: BoardState) => {
-    if (state === "manualControl" && !ENABLE_MANUAL_TEST) {
-      setBoardState("home");
+    if (state === "manualControl") {
+      ensureManualVisible();
       return;
     }
     setBoardState(state);
@@ -312,6 +326,22 @@ export default function App() {
       return;
     }
 
+    if (id === "manual") {
+      setManualWindow((prev) => {
+        if (!prev.isOpen) {
+          bringToFront("manual");
+          return { ...prev, isOpen: true, isMinimized: false };
+        }
+        if (prev.isMinimized) {
+          bringToFront("manual");
+          return { ...prev, isMinimized: false };
+        }
+        bringToFront("manual");
+        return { ...prev, isMinimized: true };
+      });
+      return;
+    }
+
     setMiniWindow((prev) => {
       if (!prev.isOpen) {
         bringToFront("mini");
@@ -328,6 +358,7 @@ export default function App() {
 
   const taskbarItems: { id: WindowId; label: string }[] = [
     { id: "control", label: "Control Board" },
+    { id: "manual", label: "Manual Control" },
     { id: "mini", label: "Device Status" },
   ];
 
@@ -340,13 +371,9 @@ export default function App() {
       detectionStatus={detectionStatus}
       deviceSummaries={deviceSummaries}
       deviceCards={deviceCards}
-      manualSections={manualSections}
-      actionAvailability={actionAvailability}
       logSummaryItems={logSummaryItems}
       timelineItems={timelineItems}
       logCount={logCount}
-      latestSnapshot={latestSnapshot}
-      lastActionResult={lastActionResult}
       tutorialPage={tutorialPage}
       ovenSettings={ovenSettings}
       onToggleColorblind={() => setColorblindMode((prev) => !prev)}
@@ -354,14 +381,13 @@ export default function App() {
       onSelectBoard={handleSelectBoard}
       onSelectGuide={handleSelectGuide}
       onSelectTutorialPage={setTutorialPage}
-      onManualAction={handleManualAction}
-      onRefreshDevices={refreshDeviceStatus}
       onStopAll={handleStopAll}
       onClearLog={handleClearLog}
       onExportLog={handleExportLog}
       onUpdateOvenSettings={updateOvenSettings}
       onResetOvenSettings={resetOvenSettings}
       onGestureDetected={handleGestureSignal}
+      renderManualBoard={renderManualBoard}
     />
   );
 
@@ -374,6 +400,7 @@ export default function App() {
   );
 
   const isControlVisible = !controlWindow.isMinimized;
+  const isManualVisible = manualWindow.isOpen && !manualWindow.isMinimized;
   const isMiniVisible = miniWindow.isOpen && !miniWindow.isMinimized;
 
   return (
@@ -399,6 +426,32 @@ export default function App() {
             }
           >
             {controlBoard}
+          </DesktopWindow>
+        )}
+
+        {isManualVisible && (
+          <DesktopWindow
+            title="Manual Controls"
+            position={manualWindow.position}
+            size={manualWindow.size}
+            zIndex={zIndexFor("manual")}
+            minWidth={420}
+            minHeight={380}
+            onFocus={() => bringToFront("manual")}
+            onMove={(position: WindowPosition) =>
+              setManualWindow((prev) => ({ ...prev, position }))
+            }
+            onResize={(size: WindowSize, position: WindowPosition) =>
+              setManualWindow((prev) => ({ ...prev, size, position }))
+            }
+            onMinimize={() =>
+              setManualWindow((prev) => ({ ...prev, isMinimized: true }))
+            }
+            onClose={() =>
+              setManualWindow((prev) => ({ ...prev, isOpen: false, isMinimized: false }))
+            }
+          >
+            {renderManualBoard()}
           </DesktopWindow>
         )}
 
@@ -433,11 +486,31 @@ export default function App() {
         <span className="desktop-taskbar__label">Apps</span>
         <div className="desktop-taskbar__items">
           {taskbarItems.map((item) => {
-            const isActive =
-              item.id === "control"
-                ? !controlWindow.isMinimized
-                : miniWindow.isOpen && !miniWindow.isMinimized;
-            const isPinned = item.id === "control" || miniWindow.isOpen;
+            const isActive = (() => {
+              switch (item.id) {
+                case "control":
+                  return !controlWindow.isMinimized;
+                case "manual":
+                  return manualWindow.isOpen && !manualWindow.isMinimized;
+                case "mini":
+                  return miniWindow.isOpen && !miniWindow.isMinimized;
+                default:
+                  return false;
+              }
+            })();
+
+            const isPinned = (() => {
+              switch (item.id) {
+                case "control":
+                  return true;
+                case "manual":
+                  return manualWindow.isOpen;
+                case "mini":
+                  return miniWindow.isOpen;
+                default:
+                  return false;
+              }
+            })();
             return (
               <button
                 key={item.id}
@@ -461,6 +534,7 @@ export default function App() {
           className="desktop-taskbar__button"
           onClick={() => {
             ensureControlVisible();
+            ensureManualVisible();
             ensureMiniVisible();
           }}
         >
