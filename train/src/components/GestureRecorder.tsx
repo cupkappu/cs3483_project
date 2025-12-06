@@ -20,11 +20,11 @@ interface GestureRecorderProps {
 }
 
 const STATUS_LABEL: Record<CaptureStatus, string> = {
-  idle: "未初始化",
-  "camera-initializing": "相机初始化中",
-  "model-loading": "模型加载中",
-  ready: "就绪",
-  error: "出现异常",
+  idle: "Not initialized",
+  "camera-initializing": "Camera initializing",
+  "model-loading": "Model loading",
+  ready: "Ready",
+  error: "Error",
 };
 
 export function GestureRecorder({
@@ -48,9 +48,9 @@ export function GestureRecorder({
 
   const statusText = useMemo(() => {
     if (isRecording) {
-      return "录制中";
+      return "Recording";
     }
-    return STATUS_LABEL[captureStatus] ?? "未知";
+    return STATUS_LABEL[captureStatus] ?? "Unknown";
   }, [captureStatus, isRecording]);
 
   const confidenceText = useMemo(() => {
@@ -83,7 +83,7 @@ export function GestureRecorder({
       const payload = JSON.parse(text);
       const rawSamples: unknown = Array.isArray(payload) ? payload : payload?.samples;
       if (!Array.isArray(rawSamples) || !rawSamples.length) {
-        window.alert?.("导入失败：文件中没有有效的 samples 数据");
+  window.alert?.("Import failed: no valid samples found in the file.");
         return;
       }
 
@@ -112,15 +112,15 @@ export function GestureRecorder({
         .filter((sample): sample is RecordedSample => Boolean(sample));
 
       if (!imported.length) {
-        window.alert?.("导入失败：未能识别任何有效样本");
+        window.alert?.("Import failed: no valid samples detected.");
         return;
       }
 
       onImportSamples(imported);
-      window.alert?.(`成功导入 ${imported.length} 条样本`);
+      window.alert?.(`Successfully imported ${imported.length} sample${imported.length === 1 ? "" : "s"}.`);
     } catch (error) {
-      console.error("导入样本失败", error);
-      window.alert?.("导入样本失败，请确认文件格式无误");
+      console.error("Failed to import samples", error);
+      window.alert?.("Sample import failed. Please verify the file format.");
     }
   };
 
@@ -133,10 +133,10 @@ export function GestureRecorder({
         </span>
       </header>
 
-      <p>选择目标手势并同步触发录制。模型就绪后再开始采样，可随时停止并回顾样本。</p>
+      <p>Select the target gesture and start recording in sync. Only begin sampling once the model is ready—you can stop anytime and review the captured data.</p>
 
       <div className="control-row">
-        <label htmlFor="gesture-select">采集手势</label>
+        <label htmlFor="gesture-select">Target gesture</label>
         <select id="gesture-select" value={selectedLabel} onChange={handleSelectChange}>
           {gestureOptions.map((option) => (
             <option key={option} value={option}>
@@ -145,45 +145,45 @@ export function GestureRecorder({
           ))}
         </select>
         <button type="button" onClick={onStartCapture} disabled={isRecording || !isReady}>
-          开始录制
+          Start Recording
         </button>
         <button type="button" onClick={onStopCapture} disabled={!isRecording}>
-          停止并保存
+          Stop & Save
         </button>
         <button type="button" onClick={onClearSamples} disabled={!samples.length}>
-          清空样本
+          Clear Samples
         </button>
       </div>
 
       <div className="info-grid">
         <div className="info-card">
-          <span className="info-label">捕捉状态</span>
+          <span className="info-label">Capture Status</span>
           <strong>{statusText}</strong>
         </div>
         <div className="info-card">
-          <span className="info-label">当前手势</span>
-          <strong>{isRecording ? selectedLabel : "未录制"}</strong>
+          <span className="info-label">Current Gesture</span>
+          <strong>{isRecording ? selectedLabel : "Idle"}</strong>
         </div>
         <div className="info-card">
-          <span className="info-label">帧计数</span>
+          <span className="info-label">Frame Count</span>
           <strong>{frameCount}</strong>
         </div>
         <div className="info-card">
-          <span className="info-label">最新置信度</span>
+          <span className="info-label">Latest Confidence</span>
           <strong>{confidenceText}</strong>
         </div>
       </div>
 
       <div className="sample-section">
         <div className="sample-section-header">
-          <h3>样本列表</h3>
-          <span className="sample-count">共 {samples.length} 条</span>
+          <h3>Sample List</h3>
+          <span className="sample-count">Total {samples.length}</span>
           <div className="sample-actions">
             <button type="button" onClick={onExportSamples} disabled={!samples.length}>
-              导出 JSON
+              Export JSON
             </button>
             <button type="button" onClick={handleImportClick}>
-              导入 JSON
+              Import JSON
             </button>
             <input
               ref={fileInputRef}
@@ -206,16 +206,16 @@ export function GestureRecorder({
                   </time>
                 </div>
                 <div className="sample-meta">
-                  <span>{sample.frames.length} 帧</span>
+                  <span>{sample.frames.length} frames</span>
                   <button type="button" onClick={() => onRemoveSample(sample.id)}>
-                    删除
+                    Delete
                   </button>
                 </div>
               </li>
             ))}
           </ul>
         ) : (
-          <div className="empty-hint">目前还没有样本，等待模型就绪后开始录制吧。</div>
+          <div className="empty-hint">No samples yet—wait for the model to be ready, then start recording.</div>
         )}
       </div>
     </div>

@@ -1,21 +1,22 @@
 # Control Board Simulator
 
-## 环境要求
-- Node.js 18 或更新版本（附带 npm）
+## Prerequisites
+- Node.js 18 or newer (npm included)
 
-## 快速开始
+## Quick start
 
-先`cd app`，进入代码目录。
+Change into the app workspace first:
 
 ```bash
-npm install       # 安装依赖
-npm run dev       # 启动开发服务器（默认 http://localhost:5173）
+cd app
+npm install       # install dependencies
+npm run dev       # start the dev server (defaults to http://localhost:5173)
 ```
 
-开发模式才会显示 Manual Test 面板，所以日常调试直接执行 `npm run dev` 即可。
+The Manual Test panel only appears in development mode, so `npm run dev` is the go-to command for day-to-day work.
 
-## 构建与预览
+## Build & preview
 ```bash
-npm run build     # 生成生产包
-npm run preview   # （可选）本地预览打包结果
+npm run build     # produce a production bundle
+npm run preview   # (optional) preview the build locally
 ```

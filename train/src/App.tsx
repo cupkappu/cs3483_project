@@ -135,7 +135,7 @@ export default function App() {
 
   const handleExportSamples = useCallback(() => {
     if (!samples.length) {
-      window.alert?.("当前没有样本可导出");
+  window.alert?.("No samples available to export");
       return;
     }
 
@@ -167,8 +167,8 @@ export default function App() {
       document.body.removeChild(anchor);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("导出样本失败", error);
-      window.alert?.("导出失败，请查看控制台详情");
+  console.error("Failed to export samples", error);
+  window.alert?.("Export failed. Check the console for details.");
     }
   }, [samples]);
 
@@ -208,7 +208,7 @@ export default function App() {
     <div className="app-shell">
       <header className="app-header">
         <h1>Gesture Trainer Console</h1>
-        <p>采集手势样本、标注数据并导出适配主控台的模型。</p>
+  <p>Capture gesture samples, label them, and export models that plug back into the main console.</p>
       </header>
 
       <main className="app-content">

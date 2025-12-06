@@ -92,7 +92,7 @@ export default function GestureCaptureCanvas({
         attempts += 1;
         if (attempts >= ML5_POLL_RETRIES) {
           clearInterval(timer);
-          reject(new Error("ml5 未能在预期时间内加载"));
+          reject(new Error("ml5 failed to load within the expected time"));
         }
       }, ML5_POLL_INTERVAL);
     });
@@ -123,7 +123,7 @@ export default function GestureCaptureCanvas({
           updateStatus("model-loading");
           const ml5 = await waitForMl5();
           if (!ml5?.handPose) {
-            throw new Error("ml5.handPose 未找到");
+            throw new Error("ml5.handPose was not found");
           }
 
           const model = await ml5.handPose({ maxHands: MAX_HANDS, flipped: true });
@@ -133,7 +133,7 @@ export default function GestureCaptureCanvas({
           });
           updateStatus("ready");
         } catch (error) {
-          console.error("手势模型初始化失败", error);
+          console.error("Failed to initialize the hand-pose model", error);
           updateStatus("error");
         }
       };
@@ -211,13 +211,13 @@ export default function GestureCaptureCanvas({
       try {
         handPoseRef.current?.detectStop?.();
       } catch (error) {
-        console.warn("停止 HandPose 检测失败", error);
+  console.warn("Failed to stop HandPose detection", error);
       }
       if (videoRef.current) {
         try {
           videoRef.current.remove();
         } catch (error) {
-          console.warn("移除视频流失败", error);
+          console.warn("Failed to remove the video stream", error);
         }
       }
       canvasRef.current = null;
