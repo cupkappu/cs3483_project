@@ -9,15 +9,16 @@ import type {
   DeviceStatusDto,
   DeviceId,
   DevicesState,
-  GestureSignal,
   LogEntry,
 } from "../types";
+import { GestureSignal } from "../types";
 import {
   ACTION_CONFIG,
   GESTURE_TO_ACTION,
   INITIAL_DEVICES,
   MANUAL_SECTIONS,
   MAX_LOG_ENTRIES,
+  VOICE_STATUS_PLACEHOLDER,
 } from "../config/controlConfig";
 import { createDeviceCards, createDeviceSummaries } from "../utils/deviceViewModel";
 import { buildLogSummaryItems, buildTimelineItems } from "../utils/logging";
@@ -534,7 +535,7 @@ export const useControlManager = (): ControlManagerApi => {
   const backendStateRef = useRef<DevicesState>(cloneDevicesState(INITIAL_DEVICES));
   const [detectionStatus, setDetectionStatus] = useState<DetectionStatus>({
     gesture: "NONE",
-    voice: "NONE",
+    voice: VOICE_STATUS_PLACEHOLDER,
   });
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [latestSnapshot, setLatestSnapshot] = useState<DevicePollingSnapshot | null>(null);
@@ -604,7 +605,7 @@ export const useControlManager = (): ControlManagerApi => {
       if (config.detection) {
         setDetectionStatus((prev) => ({
           gesture: config.detection?.gesture ?? prev.gesture,
-          voice: config.detection?.voice ?? prev.voice,
+          voice: VOICE_STATUS_PLACEHOLDER,
         }));
       }
 
@@ -629,11 +630,28 @@ export const useControlManager = (): ControlManagerApi => {
   const handleGestureSignal = useCallback(
     (signal: GestureSignal) => {
       setDetectionStatus((prev) => ({ ...prev, gesture: signal }));
-      const action = GESTURE_TO_ACTION[signal];
-      if (!action) {
+
+      const actions: ControlAction[] = [];
+      if (signal === GestureSignal.DownwardWave) {
+        if (backendStateRef.current.coffee.status === "needs-capsule") {
+          actions.push("coffee_capsule_load");
+        }
+        actions.push("coffee_activate");
+      } else {
+        const mappedAction = GESTURE_TO_ACTION[signal];
+        if (mappedAction) {
+          actions.push(mappedAction);
+        }
+      }
+
+      if (!actions.length) {
         return null;
       }
-      const result = performAction(action, "gesture");
+
+      let result: ControlActionResult | null = null;
+      actions.forEach((action) => {
+        result = performAction(action, "gesture");
+      });
       setDetectionStatus((prev) => ({ ...prev, gesture: signal }));
       return result;
     },

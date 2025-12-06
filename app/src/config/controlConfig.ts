@@ -7,6 +7,8 @@ import type {
   ManualControlSection,
 } from "../types";
 
+export const VOICE_STATUS_PLACEHOLDER = "No support yet";
+
 export const MAX_LOG_ENTRIES = 50;
 
 export const INITIAL_DEVICES: DevicesState = {
@@ -135,7 +137,7 @@ export const ACTION_CONFIG: Record<
   },
   stop_all: {
     message: "Emergency stop triggered",
-    detection: { gesture: "Manual: STOP ALL", voice: "Manual: STOP" },
+    detection: { gesture: "Manual: STOP ALL" },
   },
 };
 

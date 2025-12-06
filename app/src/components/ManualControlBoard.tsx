@@ -10,6 +10,7 @@ import type {
   ManualControlSection,
   ControlActionResult,
 } from "../types";
+import { VOICE_STATUS_PLACEHOLDER } from "../config/controlConfig";
 import "../styles/manual-control-board.css";
 
 interface ManualControlBoardProps {
@@ -111,7 +112,9 @@ export default function ManualControlBoard({
   };
 
   const gesturePositive = detectionStatus.gesture !== "NONE";
-  const voicePositive = detectionStatus.voice !== "NONE";
+  const voicePositive =
+    detectionStatus.voice !== "NONE" && detectionStatus.voice !== VOICE_STATUS_PLACEHOLDER;
+  const voiceText = voicePositive ? detectionStatus.voice : VOICE_STATUS_PLACEHOLDER;
 
   return (
     <div className="manual-control-board">
@@ -239,7 +242,7 @@ export default function ManualControlBoard({
                     : "manual-control-detection-value"
                 }
               >
-                {detectionStatus.voice}
+                {voiceText}
               </span>
             </div>
           </div>

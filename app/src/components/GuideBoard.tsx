@@ -9,6 +9,7 @@ import demoPalm from "../assets/plam.mp4";
 import demoPush from "../assets/push.mp4";
 import demoTwoHand from "../assets/TwoHandPalm.mp4";
 import type { DetectionStatus, GestureSignal, GuideSubState } from "../types";
+import { VOICE_STATUS_PLACEHOLDER } from "../config/controlConfig";
 
 interface GuideBoardProps {
   guideState: GuideSubState;
@@ -217,7 +218,9 @@ function TutorialBoard({
   const hasMultipleSteps = steps.length > 1;
   const isLastStep = stepIndex >= steps.length - 1;
   const gesturePositive = detectionStatus.gesture !== "NONE";
-  const voicePositive = detectionStatus.voice !== "NONE";
+  const voicePositive =
+    detectionStatus.voice !== "NONE" && detectionStatus.voice !== VOICE_STATUS_PLACEHOLDER;
+  const voiceText = voicePositive ? detectionStatus.voice : VOICE_STATUS_PLACEHOLDER;
 
   const handleNextAction = () => {
     if (!isLastStep) {
@@ -332,7 +335,7 @@ function TutorialBoard({
                   voicePositive ? "status-text status-success" : "status-text"
                 }
               >
-                {detectionStatus.voice}
+                {voiceText}
               </span>
             </div>
           </div>
@@ -379,7 +382,9 @@ function ManualBoard({
   onGestureDetected?: (signal: GestureSignal) => void;
 }) {
   const gesturePositive = detectionStatus.gesture !== "NONE";
-  const voicePositive = detectionStatus.voice !== "NONE";
+  const voicePositive =
+    detectionStatus.voice !== "NONE" && detectionStatus.voice !== VOICE_STATUS_PLACEHOLDER;
+  const voiceText = voicePositive ? detectionStatus.voice : VOICE_STATUS_PLACEHOLDER;
 
   return (
     <div className="manual-layout">
@@ -471,7 +476,7 @@ function ManualBoard({
                 voicePositive ? "status-text status-success" : "status-text"
               }
             >
-              {detectionStatus.voice}
+              {voiceText}
             </span>
           </div>
         </div>

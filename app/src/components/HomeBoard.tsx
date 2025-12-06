@@ -8,6 +8,7 @@ import type {
   DeviceHeroSummary,
   GestureSignal,
 } from "../types";
+import { VOICE_STATUS_PLACEHOLDER } from "../config/controlConfig";
 
 interface HomeBoardProps {
   colorblindMode: boolean;
@@ -30,6 +31,10 @@ export default function HomeBoard({
   onToggleMeeting,
   onGestureDetected,
 }: HomeBoardProps) {
+  const voiceActive =
+    detectionStatus.voice !== "NONE" && detectionStatus.voice !== VOICE_STATUS_PLACEHOLDER;
+  const voiceText = voiceActive ? detectionStatus.voice : VOICE_STATUS_PLACEHOLDER;
+
   return (
     <div className="home-board">
       <div className="home-sidebar">
@@ -84,12 +89,10 @@ export default function HomeBoard({
               <span className="detection-label">Voice</span>
               <span
                 className={
-                  detectionStatus.voice === "NONE"
-                    ? "voice-status is-empty"
-                    : "voice-status"
+                  voiceActive ? "voice-status" : "voice-status is-empty"
                 }
               >
-                {detectionStatus.voice}
+                {voiceText}
               </span>
             </div>
           </div>
